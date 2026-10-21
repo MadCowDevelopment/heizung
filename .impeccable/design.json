@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-21T17:14:38.065Z",
+  "title": "Design System: Werkbank Heizungsabrechnung",
+  "extensions": {
+    "colorMeta": {
+      "bench": {
+        "role": "neutral",
+        "displayName": "Papier",
+        "canonical": "oklch(98.0% 0.0057 84.6)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#282623",
+          "#464542",
+          "#676662",
+          "#8b8985",
+          "#afaeaa",
+          "#cfcdca",
+          "#f0eeea"
+        ]
+      },
+      "bench-raised": {
+        "role": "neutral",
+        "displayName": "Papier gehoben",
+        "canonical": "oklch(100.0% 0.0000 89.9)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#272624",
+          "#464543",
+          "#676663",
+          "#8a8986",
+          "#afaeab",
+          "#cfcecb",
+          "#efeeeb"
+        ]
+      },
+      "bench-sunk": {
+        "role": "neutral",
+        "displayName": "Papier vertieft",
+        "canonical": "oklch(95.0% 0.0115 84.6)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#292620",
+          "#48453e",
+          "#69665f",
+          "#8c8981",
+          "#b1ada6",
+          "#d1cdc5",
+          "#f2eee6"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinte",
+        "canonical": "oklch(21.8% 0.0059 91.6)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#272623",
+          "#464541",
+          "#676662",
+          "#8a8985",
+          "#afaeaa",
+          "#cfcec9",
+          "#f0eeea"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Tinte gedämpft",
+        "canonical": "oklch(43.9% 0.0104 84.6)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#292621",
+          "#48453f",
+          "#69665f",
+          "#8c8982",
+          "#b1ada7",
+          "#d1cdc6",
+          "#f2eee7"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Tinte schwach",
+        "canonical": "oklch(51.8% 0.0100 84.6)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#292621",
+          "#47453f",
+          "#696660",
+          "#8c8982",
+          "#b1ada7",
+          "#d1cdc7",
+          "#f2eee7"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Haarlinie",
+        "canonical": "oklch(90.2% 0.0145 84.6)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#2a261e",
+          "#49453c",
+          "#6a665d",
+          "#8d897f",
+          "#b2ada4",
+          "#d2cdc3",
+          "#f3eee4"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Linie kräftig",
+        "canonical": "oklch(81.8% 0.0191 86.2)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#2b261c",
+          "#4a443a",
+          "#6b665a",
+          "#8e897c",
+          "#b3ada1",
+          "#d3cdc0",
+          "#f4eee0"
+        ]
+      },
+      "warm": {
+        "role": "primary",
+        "displayName": "Warmwasser",
+        "canonical": "oklch(53.9% 0.1937 26.7)",
+        "tonalRamp": [
+          "#3e0000",
+          "#680000",
+          "#910000",
+          "#bc1a1f",
+          "#e74b44",
+          "#ff7368",
+          "#ff9587",
+          "#ffb6a7"
+        ]
+      },
+      "warm-soft": {
+        "role": "primary",
+        "displayName": "Warmwasser hell",
+        "canonical": "oklch(95.5% 0.0164 22.1)",
+        "tonalRamp": [
+          "#110808",
+          "#2e2323",
+          "#4e4241",
+          "#6f6362",
+          "#938585",
+          "#b8aaa9",
+          "#d8cac9",
+          "#f9eae9"
+        ]
+      },
+      "kalt": {
+        "role": "secondary",
+        "displayName": "Kaltwasser",
+        "canonical": "oklch(51.3% 0.1603 255.7)",
+        "tonalRamp": [
+          "#00004c",
+          "#001971",
+          "#003f97",
+          "#1364bf",
+          "#3e89e7",
+          "#64afff",
+          "#84d0ff",
+          "#a4f2ff"
+        ]
+      },
+      "kalt-soft": {
+        "role": "secondary",
+        "displayName": "Kaltwasser hell",
+        "canonical": "oklch(95.6% 0.0154 257.2)",
+        "tonalRamp": [
+          "#070b12",
+          "#22272e",
+          "#40454d",
+          "#61676f",
+          "#838a93",
+          "#a8aeb8",
+          "#c8ced8",
+          "#e8eff9"
+        ]
+      },
+      "energie": {
+        "role": "secondary",
+        "displayName": "Energie",
+        "canonical": "oklch(68.0% 0.1847 48.1)",
+        "tonalRamp": [
+          "#3a0000",
+          "#620000",
+          "#8a0000",
+          "#b43400",
+          "#dd5c00",
+          "#ff832f",
+          "#ffa355",
+          "#ffc578"
+        ]
+      },
+      "energie-soft": {
+        "role": "secondary",
+        "displayName": "Energie hell",
+        "canonical": "oklch(96.2% 0.0223 67.6)",
+        "tonalRamp": [
+          "#110903",
+          "#2e241b",
+          "#4d4338",
+          "#6f6459",
+          "#93877b",
+          "#b8ac9f",
+          "#d8cbbf",
+          "#f9ecdf"
+        ]
+      },
+      "energie-ink": {
+        "role": "secondary",
+        "displayName": "Energie Tinte",
+        "canonical": "oklch(52.3% 0.1332 52.7)",
+        "tonalRamp": [
+          "#2e0000",
+          "#530000",
+          "#782700",
+          "#9f4b00",
+          "#c66f31",
+          "#ef9458",
+          "#ffb478",
+          "#ffd598"
+        ]
+      },
+      "ok": {
+        "role": "state",
+        "displayName": "Bestätigt",
+        "canonical": "oklch(48.1% 0.1083 152.8)",
+        "tonalRamp": [
+          "#001500",
+          "#003406",
+          "#005526",
+          "#297747",
+          "#509c69",
+          "#76c28d",
+          "#95e3ac",
+          "#b6ffcc"
+        ]
+      },
+      "warn": {
+        "role": "state",
+        "displayName": "Warnung",
+        "canonical": "oklch(50.8% 0.1080 73.3)",
+        "tonalRamp": [
+          "#230000",
+          "#441800",
+          "#663900",
+          "#8b5b01",
+          "#b07e36",
+          "#d7a35c",
+          "#f9c37c",
+          "#ffe49c"
+        ]
+      },
+      "danger": {
+        "role": "state",
+        "displayName": "Gefahr",
+        "canonical": "oklch(50.1% 0.1783 28.7)",
+        "tonalRamp": [
+          "#3a0000",
+          "#630000",
+          "#8c0000",
+          "#b62921",
+          "#e05446",
+          "#ff7b6a",
+          "#ff9b89",
+          "#ffbda8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "sans": {
+        "displayName": "Segoe UI",
+        "purpose": "Alle gelesenen Texte: Kopfzeile, Navigation, Beschriftungen, Fließtext, Buttons."
+      },
+      "mono": {
+        "displayName": "Cascadia Mono / ui-monospace",
+        "purpose": "Ausschließlich Ziffern: Stände, Beträge, Datumswerte. Tabellarische Ziffern, damit Spalten untereinander fluchten."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "lauflinie",
+        "value": "1400ms cubic-bezier(0.16, 1, 0.3, 1) infinite",
+        "purpose": "Die eine Bewegung der Oberfläche: das Segment läuft weiter, solange in der Erfassung noch Zähler fehlen. Bei prefers-reduced-motion: reduce entfällt sie (0,01ms, eine Runde)."
+      },
+      {
+        "name": "zustandswechsel",
+        "value": "150ms ease-out",
+        "purpose": "Farbwechsel bei Hover, Aktivierung und Einblenden der Lauflinie. Kein Versatz, keine Skalierung — der Beleg bewegt sich nicht."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "head",
+        "value": "896px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Die eine Haupttätigkeit einer Ansicht: gefüllte Tinte auf Papier, fast rechteckig, 44px hoch.",
+      "html": "<button class=\"ds-btn-primary\">Ablesung speichern</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 44px; padding: 0.75rem 1rem; border: 0; border-radius: 3px; background: #1b1a17; color: #faf8f4; font: 500 0.9375rem/1.5 \"Segoe UI\", system-ui, sans-serif; cursor: pointer; transition: background-color 150ms ease-out, color 150ms ease-out; }\n.ds-btn-primary:hover { background: #33312c; }\n.ds-btn-primary:focus-visible { outline: 2px solid #1b1a17; outline-offset: 2px; }\n.ds-btn-primary:active { background: #000000; }\n.ds-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Die Alternative zur Haupttätigkeit: gleiche Grösse, aber nur eine Haarlinie als Kante.",
+      "html": "<button class=\"ds-btn-secondary\">Entwurf verwerfen</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 44px; padding: 0.75rem 1rem; border: 1px solid #c9c3b6; border-radius: 3px; background: transparent; color: #1b1a17; font: 500 0.9375rem/1.5 \"Segoe UI\", system-ui, sans-serif; cursor: pointer; transition: background-color 150ms ease-out, border-color 150ms ease-out; }\n.ds-btn-secondary:hover { background: #f2eee6; border-color: #a8a294; }\n.ds-btn-secondary:focus-visible { outline: 2px solid #1b1a17; outline-offset: 2px; }\n.ds-btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Text Action",
+      "kind": "button",
+      "refersTo": "text-action",
+      "description": "Eine Aktion im Fließtext: unterstrichen, 44px Trefferfläche, gefährliche Aktionen in Gefahrrot.",
+      "html": "<div class=\"ds-text-actions\"><button class=\"ds-text-action\">Zähler bearbeiten</button><button class=\"ds-text-action ds-text-action--danger\">Zähler löschen</button></div>",
+      "css": ".ds-text-actions { display: flex; align-items: center; gap: 0.25rem; }\n.ds-text-action { display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.5rem; border: 0; border-radius: 2px; background: transparent; color: #1b1a17; font: 400 0.875rem/1.5 \"Segoe UI\", system-ui, sans-serif; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #c9c3b6; cursor: pointer; transition: color 150ms ease-out, text-decoration-color 150ms ease-out; }\n.ds-text-action:hover { text-decoration-color: #1b1a17; }\n.ds-text-action:focus-visible { outline: 2px solid #1b1a17; outline-offset: 2px; }\n.ds-text-action--danger { color: #b3261e; text-decoration-color: #e3b0ae; }\n.ds-text-action--danger:hover { text-decoration-color: #b3261e; }"
+    },
+    {
+      "name": "Form Line",
+      "kind": "input",
+      "refersTo": "field-line",
+      "description": "Eingabefeld als Formularlinie: kein Kasten, nur eine Unterlinie, die beim Fokus kräftiger wird.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field__label\" for=\"ds-feld-1\">Zählernummer</label><input class=\"ds-field__input\" id=\"ds-feld-1\" placeholder=\"z. B. 4711\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 0.25rem; }\n.ds-field__label { color: #55524c; font: 500 0.75rem/1.5 \"Segoe UI\", system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }\n.ds-field__input { width: 100%; min-height: 44px; padding: 0.25rem 0; border: 0; border-bottom: 1px solid #c9c3b6; border-radius: 0; background: transparent; color: #1b1a17; font: 400 1rem/1.5 \"Segoe UI\", system-ui, sans-serif; }\n.ds-field__input::placeholder { color: #6b6862; }\n.ds-field__input:focus-visible { outline: none; border-bottom-color: #1b1a17; }\n.ds-field__input:disabled { color: #6b6862; border-bottom-style: dotted; }"
+    },
+    {
+      "name": "Read-only Number Field",
+      "kind": "input",
+      "refersTo": "field-line",
+      "description": "Zahlenfeld zum Erfassen: rechtsbündig, gesetzte Ziffern, Einheit steht daneben und wird nie getippt.",
+      "html": "<div class=\"ds-number\"><input class=\"ds-number__input\" value=\"1248\" readonly /><span class=\"ds-number__unit\">m³</span></div>",
+      "css": ".ds-number { position: relative; display: inline-flex; align-items: center; }\n.ds-number__input { width: 8rem; min-height: 44px; padding: 0.25rem 2.5rem 0.25rem 0; border: 0; border-bottom: 1px solid #c9c3b6; border-radius: 0; background: transparent; color: #1b1a17; text-align: right; font: 400 1.125rem/1.5 ui-monospace, \"Cascadia Mono\", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }\n.ds-number__input:focus-visible { outline: none; border-bottom-color: #1b1a17; }\n.ds-number__unit { position: absolute; right: 0.5rem; color: #6b6862; font: 400 0.75rem/1.5 \"Segoe UI\", system-ui, sans-serif; pointer-events: none; }"
+    },
+    {
+      "name": "Meter Chip",
+      "kind": "chip",
+      "refersTo": "meter-chip",
+      "description": "Zählertyp: Farbe, Glyphe und Wort zugleich. Die Farbe allein trägt nie die Information.",
+      "html": "<span class=\"ds-chip ds-chip--energie\"><span class=\"ds-chip__glyph\" aria-hidden=\"true\">◈</span>Energie</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.125rem 0.5rem; border-radius: 3px; font: 500 0.75rem/1.5 \"Segoe UI\", system-ui, sans-serif; letter-spacing: 0.01em; white-space: nowrap; }\n.ds-chip__glyph { font-size: 0.6em; line-height: 1; }\n.ds-chip--energie { background: #fdf0e3; color: #a34f00; }\n.ds-chip--warm { background: #fbeceb; color: #c62828; }\n.ds-chip--kalt { background: #eaf1fb; color: #1565c0; }"
+    },
+    {
+      "name": "Type Stripe",
+      "kind": "custom",
+      "refersTo": "type-stripe",
+      "description": "Der 3px-Farbstreifen am linken Rand einer Zählerzeile: reiner Typ-Hinweis, ohne Textwiederholung.",
+      "html": "<span class=\"ds-stripe\"></span>",
+      "css": ".ds-stripe { display: block; width: 3px; height: 2.5rem; border-radius: 1px; background: #a34f00; }\n.ds-stripe--warm { background: #c62828; }\n.ds-stripe--kalt { background: #1565c0; }"
+    },
+    {
+      "name": "Navigation Tabs",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Drei gleichwertige Reiter unter der Kopfzeile; der aktive trägt eine 2px-Unterkante in Tinte.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav__item\" href=\"#\">Zähler</a><a class=\"ds-nav__item ds-nav__item--active\" href=\"#\">Ablesung</a><a class=\"ds-nav__item\" href=\"#\">Bewohner</a></nav>",
+      "css": ".ds-nav { display: flex; gap: 0.25rem; border-top: 1px solid #e3ded4; }\n.ds-nav__item { display: flex; align-items: center; min-height: 44px; padding: 0.625rem 0.75rem; border-bottom: 2px solid transparent; color: #6b6862; text-decoration: none; font: 500 0.875rem/1.5 \"Segoe UI\", system-ui, sans-serif; transition: color 150ms ease-out; }\n.ds-nav__item:hover { color: #1b1a17; }\n.ds-nav__item:focus-visible { outline: 2px solid #1b1a17; outline-offset: 2px; }\n.ds-nav__item--active { color: #1b1a17; border-bottom-color: #1b1a17; }"
+    },
+    {
+      "name": "Message Row",
+      "kind": "custom",
+      "refersTo": "message-row",
+      "description": "Ein Satz unter der Kopfzeile: Glyphe und Text in der Zustandsfarbe, darunter eine Haarlinie.",
+      "html": "<div class=\"ds-msg ds-msg--fehler\" role=\"alert\"><span class=\"ds-msg__glyph\" aria-hidden=\"true\">✕</span><span class=\"ds-msg__text\">Die Ablesung konnte nicht gespeichert werden.</span><button class=\"ds-msg__close\" aria-label=\"Meldung schließen\">✕</button></div>",
+      "css": ".ds-msg { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid #e3ded4; font: 400 0.875rem/1.4 \"Segoe UI\", system-ui, sans-serif; }\n.ds-msg__glyph { margin-top: 3px; line-height: 1; }\n.ds-msg__text { flex: 1; }\n.ds-msg--fehler { color: #b3261e; }\n.ds-msg--warnung { color: #8a5a00; }\n.ds-msg--erfolg { color: #1f6f3f; }\n.ds-msg--info { color: #55524c; }\n.ds-msg__close { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -0.25rem -0.25rem -0.25rem 0; border: 0; border-radius: 2px; background: transparent; color: inherit; font: inherit; cursor: pointer; }\n.ds-msg__close:hover { text-decoration: underline; }\n.ds-msg__close:focus-visible { outline: 2px solid #1b1a17; outline-offset: 2px; }"
+    },
+    {
+      "name": "Running Line",
+      "kind": "custom",
+      "refersTo": "running-line",
+      "description": "Die Lauflinie des Erfassens: 3px Streifen, dessen Segment weiterläuft, solange Zähler fehlen.",
+      "html": "<div class=\"ds-lauflinie ds-lauflinie--laeuft\"></div>",
+      "css": ".ds-lauflinie { position: relative; height: 3px; overflow: hidden; background: #e3ded4; }\n.ds-lauflinie::after { content: \"\"; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; background: #1b1a17; opacity: 0; transform: translateX(-100%); transition: opacity 150ms ease-out; }\n.ds-lauflinie--laeuft::after { opacity: 1; animation: ds-lauflinie 1400ms cubic-bezier(0.16, 1, 0.3, 1) infinite; }\n@keyframes ds-lauflinie { from { transform: translateX(-100%); } to { transform: translateX(222%); } }\n@media (prefers-reduced-motion: reduce) { .ds-lauflinie--laeuft::after { animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Ein Keller in der Abendstunde",
+    "overview": [
+      "Die Oberfläche ist kein Dashboard, sondern eine Werkbank. Ein Verwaltungsobmann liest im Keller Zähler ab, hält das Handy einhändig, hat schlechtes Licht und eine Handvoll Papier. Was auf dem Bildschirm erscheint, ist der Beleg, auf dem dieser Vorgang festgehalten wird: ein durchgehendes Blatt, durch feine Haarlinien in Bänder geteilt, Werte als gesetzte Ziffern, Einheiten klein dahinter. Es gibt keine Kacheln, keine Karten, keinen Glas-Look, kein Neon. Die Raumfarbe ist gebrochenes Weiß.",
+      "Dichte entsteht nicht durch mehr Elemente, sondern durch weniger Linien pro Bedeutung: eine Linie trennt, ein Streifen markiert, eine Zahl trägt den Wert. Drei Farben sind gesetzt und tragen ausschliesslich Fachbedeutung — Warmwasser rot, Kaltwasser blau, Energie Bernstein. Farbe steht nie allein, immer zusammen mit Glyphe und Wort. Es gibt genau eine Bewegung: die Lauflinie, die beim Erfassen weiterläuft, solange noch etwas fehlt."
+    ],
+    "keyCharacteristics": [
+      "Liniert statt gekachelt: Trennung durch Haarlinien, nie durch Rahmen.",
+      "Eine Fläche, drei Ebenen: Papier, Vertiefung, Schrift.",
+      "Zahlen sind gesetzt: Monospace mit Tabellenziffern, rechtsbündig, Einheiten klein.",
+      "Farbe ist Fachinformation, nie Dekoration — und nie allein.",
+      "Genau eine Bewegung, und sie zeigt Arbeitsstand an."
+    ],
+    "rules": [
+      {
+        "name": "The Fachfarbe Rule",
+        "body": "Rot, Blau und Bernstein stehen nie für sich. Jede Fachfarbe erscheint mit Glyphe und Wort, damit die Information auch ohne Farbsehen vollständig ist. Für Texte auf Papier gilt die Tinte-Variante des Fachbereichs (energie-ink statt energie).",
+        "section": "colors"
+      },
+      {
+        "name": "The Keine Dekoration Rule",
+        "body": "Farbe, die keine Fachbedeutung trägt, kommt nicht vor. Es gibt keine Akzentfarbe für Buttons, keine Verlaufsflächen, keine Farbflächen hinter Überschriften.",
+        "section": "colors"
+      },
+      {
+        "name": "The Gesetzte Zahl Rule",
+        "body": "Jede Zahl, die verglichen oder nachgerechnet werden muss, steht in Monospace mit Tabellenziffern und rechtsbündig. Einheiten stehen klein dahinter, nie in der Zahl.",
+        "section": "typography"
+      },
+      {
+        "name": "The Versal-Label Rule",
+        "body": "Versalien tragen ausschliesslich Bezeichnungen (Felder, Abschnitte), nie Inhalte.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flach Rule",
+        "body": "Flächen sind in Ruhe flach. Es gibt keine Schlagschatten, keine Glows, keine Glasebenen. Eine Ebene entsteht nur durch Tonwert oder Linie.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do trenne Inhalte mit 1px-Haarlinien statt mit Rahmen, Schatten oder Kacheln.",
+      "Do setze jeden messbaren Wert in Monospace mit Tabellenziffern, rechtsbündig, mit der Einheit klein dahinter.",
+      "Do zeige Fachfarbe immer zusammen mit Glyphe und Wort.",
+      "Do halte jede interaktive Fläche bei mindestens 44×44px.",
+      "Do benutze genau eine Primäraktion pro Ansicht.",
+      "Do führe genau eine Bewegung: die Lauflinie, solange Erfassung fehlt.",
+      "Do bleib bei ≥ 4,5:1 Kontrast auf Papier — für Bernstein die Tinte-Variante #a34f00.",
+      "Do respektiere prefers-reduced-motion und reduziere auf Statik."
+    ],
+    "donts": [
+      "Don't erfinde Farben, die keine Fachbedeutung tragen, und setze keine Verläufe.",
+      "Don't baue Kachelraster, Kartenstapel oder Rounded-Container.",
+      "Don't setze Schatten oder Glasflächen; Tiefe kommt aus Tonwert und Linie.",
+      "Don't verkleinere Tap-Flächen unter 44px.",
+      "Don't färbe Text mit dem reinen Bernstein #ef6c00 — er ist Flächenfarbe, nicht Textfarbe.",
+      "Don't lasse Farbe Information tragen, die nicht auch als Wort dasteht.",
+      "Don't animiere etwas anderes als die Lauflinie."
+    ]
+  }
+}

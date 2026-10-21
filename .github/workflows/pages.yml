@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+# Statisches Deployment des Vite-Frontends aus apps/web (docs/architecture.md §11).
+# Auslöser: Push auf `master` (Default-Branch des Repos) oder manueller Start.
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein Deployment zur Zeit; ein neuer Lauf bricht den laufenden ab.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Pages konfigurieren
+        uses: actions/configure-pages@v5
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Abhängigkeiten installieren
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Bauen
+        working-directory: apps/web
+        env:
+          # Basis-Pfad der Projektseite: https://madcowdevelopment.github.io/heizung/
+          VITE_BASE_PATH: /heizung/
+          # Ziel-Repo des Cloud-Speichers – kein Secret, wird nie gebaut.
+          VITE_DATA_REPO: MadCowDevelopment/heizung-data
+        run: npm run build
+
+      - name: Artefakt hochladen
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Nach GitHub Pages veröffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4
