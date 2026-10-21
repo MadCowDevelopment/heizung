@@ -79,7 +79,7 @@ Settings → Developer settings → Personal access tokens → Token anklicken �
 | Variante | Aufwand | Bewertung |
 |---|---|---|
 | **Fine-grained PAT** | 5 Min, einmalig | **empfohlen** – minimaler Rechtekreis, kein Server, kein Client-Secret |
-| OAuth Device-Flow (App-Einstellung + Login per Code/QR) | 5 Min App + jedes Mal Code eintippen | **technisch nicht möglich**: `github.com/login/device/code` liefert keine CORS-Header → vom Browser nicht aufrufbar (geprüft am 21.10.2026) |
+| OAuth Device-Flow (App-Einstellung + Login per Code/QR) | 5 Min App + jedes Mal Code eintippen | **technisch nicht möglich**: `github.com/login/device/code` antwortet zwar mit `200`, aber ohne `Access-Control-Allow-Origin` → der Browser gibt die Antwort an JavaScript nicht heraus (opaque response). Geprüft am 21.10.2026 mit gültiger Client-ID |
 | OAuth Web-Flow mit PKCE | App + Redirect-URL | nur mit `client_secret` möglich → Secret im Frontend = unsicher, daher verworfen |
 | Token-Broker (Cloudflare Worker) | Server + Deployment | echter Login-Flow, aber wieder ein Backend (kostenlos, ca. 30 Min) – sinnvoll, falls später mehrere Geräte/Personen mit eigenen Tokens dazukommen |
 
@@ -94,7 +94,7 @@ Settings → Developer settings → Personal access tokens → Token anklicken �
 | `GET /repos/{owner}/{repo}/contents/data/state.json` | Stand laden | ✅ (`api.github.com`, `Access-Control-Allow-Origin: *`) |
 | `PUT /repos/{owner}/{repo}/contents/data/state.json` | Stand speichern (mit `sha` des aktuellen Blobs) | ✅ (Preflight erlaubt `PUT` + `Authorization`) |
 | `GET /user` | prüfen, ob der Token gültig ist, und Login-Namen anzeigen | ✅ |
-| `POST /github.com/login/device/code` | Device-Flow | ❌ kein CORS → nicht browserfähig |
+| `POST /github.com/login/device/code` | Device-Flow | ❌ kein `Access-Control-Allow-Origin` → Antwort für JS nicht lesbar |
 
 - **Rate-Limit:** 5.000 Requests/h (klassisch) bzw. 15.000/h (Fine-grained PAT) → die App schreibt **einen** Request pro Sync-Zyklus (ca. alle 30 s nur bei Änderung) → unkritisch.
 - **Optimistische Nebenläufigkeitskontrolle:** der `sha` des Blobs wird mitgeschickt; bei `409` (Konflikt) lädt die App den Serverstand, merged (Last-Write-Wins je Datensatz nach `updatedAt`) und schreibt erneut → kein stiller Datenverlust.

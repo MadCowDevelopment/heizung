@@ -42,15 +42,17 @@
 
 ### 2.1 Anmeldung (Token statt OAuth-Login)
 
-**Messung vom 21.10.2026 (Browser-Preflight gegen die echten Endpunkte):**
+**Messung vom 21.10.2026 (gegen die echten Endpunkte, mit gültiger Client-ID einer öffentlichen OAuth-App):**
 
-| Endpunkt | `Access-Control-Allow-Origin` | Preflight | Browserfähig? |
-|---|---|---|---|
-| `https://api.github.com/…` | `*` | 204, Methoden GET/POST/PATCH/PUT/DELETE, Header `Authorization` erlaubt | ✅ **ja** |
-| `https://github.com/login/device/code` | **fehlt** | 404 | ❌ **nein** |
-| `https://github.com/login/oauth/access_token` | **fehlt** | 404 | ❌ **nein** |
+| Endpunkt | Antwort | `Access-Control-Allow-Origin` | OPTIONS-Preflight | Browserfähig? |
+|---|---|---|---|---|
+| `POST https://github.com/login/device/code` | `200` → `device_code`, `user_code`, `verification_uri` | **fehlt** | `404` | ❌ **nein** |
+| `POST https://github.com/login/oauth/access_token` | `200` → `{"error":"authorization_pending"}` | **fehlt** | `404` | ❌ **nein** |
+| `GET`/`PUT https://api.github.com/…` | `200` | `*` | `204`, Methoden GET/POST/PATCH/PUT/DELETE, Header `Authorization` erlaubt | ✅ **ja** |
 
-Folge: Der **OAuth Device-Flow lässt sich aus reinem Browser-JavaScript nicht aufrufen** – der Code-Request scheitert schon am CORS-Preflight, bevor GitHub ihn sieht. Der Token-Tausch (`/login/oauth/access_token`) ist ebenfalls nicht CORS-fähig und verlangt ohnehin `client_secret` (PKCE ist bei GitHub nur „strongly recommended", nicht verpflichtend).
+**Mechanismus:** Die beiden `github.com`-Requests werden *ausgeführt* – `application/x-www-form-urlencoded` ist ein „simple request", löst also kein Preflight aus (die `404` auf `OPTIONS` fällt damit nicht ins Gewicht). Der Browser liefert die Antwort aber an JavaScript **nicht aus**, weil die Antwort keinen `Access-Control-Allow-Origin`-Header trägt. Ergebnis: `fetch()` liefert einen *opaque response* – die `device_code` bzw. das `access_token` sind für die App unerreichbar.
+
+Folge: Der **OAuth Device-Flow lässt sich aus reinem Browser-JavaScript nicht durchführen** – unabhängig davon, ob PKCE gesetzt ist. Der Token-Tausch (`/login/oauth/access_token`) ist ebenfalls nicht CORS-fähig; klassische OAuth-Apps verlangen zudem `client_secret` (PKCE ist bei GitHub nur „strongly recommended", nicht verpflichtend).
 
 > Ein Client-Secret im Frontend zu hinterlegen wäre ein Vollzugriff auf die OAuth-App – deshalb verworfen. Ein GitHub-App-„Client-Secret" wäre dasselbe Problem.
 
