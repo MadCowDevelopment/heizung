@@ -38,5 +38,7 @@ traegt Bedeutung und nie allein - immer Glyphe und Wort dazu. Genau eine
 bewusste Bewegung: die Linie, die beim Erfassen weiterlaeuft.
 Konzept-Seed: aa27a2b2 (Modus operate, zugewiesener Index 3). Das Blatt
 kommt aus der eigenen geerdeten Liste; kein Katalog-Challenger wurde
-uebernommen.
+uebernommen. Die uebernommene Buehne ist "data-dramaturgy-sweep-and-decay":
+die Erfassung laeuft als Streifen ueber den Beleg, der bei jedem Durchgang
+einen Eintrag erneuert.
 `.trim();
