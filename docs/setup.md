@@ -72,7 +72,10 @@ Warum: Das Token ist **auf genau ein Repository und auf genau eine Berechtigung*
 
 ### Widerruf
 
-Settings → Developer settings → Personal access tokens → Token anklicken → *Revoke*. Danach ist das Gerät sofort abgemeldet; die Daten im Repo bleiben erhalten.
+Zwei Wege, beide wirken sofort und lassen die Daten im Repo unberührt:
+
+- **In der App:** *Einstellungen → Konto & Cloud → „Abmelden"* löscht das Token aus dem Browser **und** widerruft es serverseitig über `POST /credentials/revoke` (`api.github.com`, CORS-fähig).
+- **In GitHub:** Settings → Developer settings → Personal access tokens → Token anklicken → *Revoke*.
 
 ### Alternativen
 
@@ -81,7 +84,7 @@ Settings → Developer settings → Personal access tokens → Token anklicken �
 | **Fine-grained PAT** | 5 Min, einmalig | **empfohlen** – minimaler Rechtekreis, kein Server, kein Client-Secret |
 | OAuth Device-Flow (App-Einstellung + Login per Code/QR) | 5 Min App + jedes Mal Code eintippen | **technisch nicht möglich**: `github.com/login/device/code` antwortet zwar mit `200`, aber ohne `Access-Control-Allow-Origin` → der Browser gibt die Antwort an JavaScript nicht heraus (opaque response). Geprüft am 21.10.2026 mit gültiger Client-ID |
 | OAuth Web-Flow mit PKCE | App + Redirect-URL | nur mit `client_secret` möglich → Secret im Frontend = unsicher, daher verworfen |
-| Token-Broker (Cloudflare Worker) | Server + Deployment | echter Login-Flow, aber wieder ein Backend (kostenlos, ca. 30 Min) – sinnvoll, falls später mehrere Geräte/Personen mit eigenen Tokens dazukommen |
+| Token-Broker (Cloudflare Worker) | Server + Deployment | echter Login-Flow („Mit GitHub anmelden"), aber wieder ein Backend (kostenlos, ca. 30 Min) – sinnvoll, falls später mehrere Geräte/Personen mit eigenen Tokens dazukommen. **Eigener** Worker nötig: öffentliche CORS-Proxys liefern inzwischen HTML statt JSON und sehen den Token im Klartext |
 
 **Geplanter Standby:** Die App unterstützt in der ersten Version **PAT** (Feld in den Einstellungen). Der Code ist über den `StorageAdapter` so gebaut, dass ein späterer Token-Broker oder ein echter OAuth-Login nur den Auth-Teil ersetzt – die Datenlogik bleibt unverändert.
 
