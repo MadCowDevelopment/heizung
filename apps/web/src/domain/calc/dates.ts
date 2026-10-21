@@ -57,10 +57,3 @@ export function today(): ISODate {
 export function yearPeriod(jahr: number): { von: ISODate; bis: ISODate } {
   return { von: `${jahr}-01-01`, bis: `${jahr}-12-31` };
 }
-
-/** Deutsches Datumsformat (TT.MM.JJJJ). */
-export function formatDateDE(datum: ISODate): string {
-  if (!isValidISODate(datum)) return datum;
-  const [j, m, t] = datum.split("-");
-  return `${t}.${m}.${j}`;
-}

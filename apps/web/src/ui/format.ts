@@ -6,7 +6,7 @@
  * (docs/requirements.md §5).
  */
 
-import { formatDateDE, isValidISODate } from "../domain/calc/dates";
+import { isValidISODate } from "../domain/calc/dates";
 import type { ISODate } from "../domain/types";
 
 const geldFormat = new Intl.NumberFormat("de-DE", {
@@ -37,8 +37,9 @@ export function stand(wert: number | null | undefined): string {
   return zahl(wert, 3);
 }
 
-/** Kalenderdatum in deutscher Schreibweise. */
+/** Kalenderdatum in deutscher Schreibweise (TT.MM.JJJJ). */
 export function datum(wert: ISODate | null | undefined): string {
   if (!wert || !isValidISODate(wert)) return "—";
-  return formatDateDE(wert);
+  const [j, m, t] = wert.split("-");
+  return `${t}.${m}.${j}`;
 }

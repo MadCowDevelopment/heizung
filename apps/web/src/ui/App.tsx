@@ -81,7 +81,7 @@ export function App() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pb-24">
+      <main className="mx-auto max-w-4xl px-4">
         {meldung ? (
           <Meldungszeile
             art={meldung.art}

@@ -17,6 +17,7 @@ import type {
   Abrechnung,
   AbrechnungsPosition,
   AppState,
+  FachMeldung,
   ISODate,
   VerteilSchluessel,
 } from "../types";
@@ -71,7 +72,7 @@ export interface SettlementErgebnis {
   /** Effektiver Wasserpreis der Periode (€/m³) inkl. R9-Split. */
   effektiverPreisM3: number;
   /** Globale Hinweise (unvollständige Zähler, Administratorfrage …). */
-  globaleHinweise: string[];
+  globaleHinweise: FachMeldung[];
   /** Plausibilitätsprüfung (R8). */
   plausibilitaet: PlausibilitaetPruefung;
   /** Gemeinschaftsverbrauch. */
@@ -100,7 +101,7 @@ export function buildSettlement(
   const verteilSchluessel =
     optionen.verteilSchluessel ?? state.einstellungen.verteilSchluessel ?? "warm";
   const zaehler = state.zaehler.filter((z) => !z.deleted);
-  const globaleHinweise: string[] = [];
+  const globaleHinweise: FachMeldung[] = [];
 
   // --- R1: Deltas -------------------------------------------------------
   const deltas: Map<string, MeterDelta> = meterDeltas(state.ablesung, zaehler, von, bis);
@@ -119,9 +120,10 @@ export function buildSettlement(
 
   for (const z of zaehler) {
     if (unvollstaendigIds.has(z.id)) {
-      globaleHinweise.push(
-        `Zähler „${z.bezeichnung}" ist für den Zeitraum unvollständig – wird nicht abgerechnet.`,
-      );
+      globaleHinweise.push({
+        code: "abrechnung.zaehlerUnvollstaendig",
+        params: { name: z.bezeichnung },
+      });
     }
   }
 
@@ -162,14 +164,10 @@ export function buildSettlement(
   const verteilWarm = distributeEnergy(pool.wasserWarmL, verbrauch, verteilSchluessel);
 
   if (verteilEnergie.administratorfrage) {
-    globaleHinweise.push(
-      "Für die Energieverteilung fehlt die Basis (kein Wasserverbrauch) – bitte Administrator fragen (Vorschlag: gleiche Verteilung).",
-    );
+    globaleHinweise.push({ code: "abrechnung.keineVerteilungsbasisEnergie" });
   }
   if (verteilWarm.administratorfrage && pool.wasserWarmL > 0) {
-    globaleHinweise.push(
-      "Für den Gemeinschafts-Warmwasserzähler fehlt die Verteilungsbasis – bitte Administrator fragen.",
-    );
+    globaleHinweise.push({ code: "abrechnung.keineVerteilungsbasisWarm" });
   }
 
   // --- R4/R9: Preise ----------------------------------------------------
@@ -206,11 +204,11 @@ export function buildSettlement(
       2,
     );
 
-    const hinweise: string[] = [...(verteilEnergie.hinweise.get(b.id) ?? [])];
+    const hinweise: FachMeldung[] = [...(verteilEnergie.hinweise.get(b.id) ?? [])];
     hinweise.push(...(verteilWarm.hinweise.get(b.id) ?? []));
     const v = verbrauchMap.get(b.id);
     if (v && !v.hatWarmWert && !v.hatKaltWert) {
-      hinweise.push("Kein eigener Wasserzähler – von der Verteilung ausgenommen.");
+      hinweise.push({ code: "abrechnung.keinEigenerZaehler" });
     }
 
     positionen.push({
@@ -250,9 +248,7 @@ export function buildSettlement(
       positionen.length || 1,
     );
     if (positionen.length > 0) {
-      globaleHinweise.push(
-        "Keine theoretischen Kosten als Verteilungsbasis – Betreiberbetrag gleichmäßig verteilt.",
-      );
+      globaleHinweise.push({ code: "abrechnung.keineTheoretischenKosten" });
     }
   }
 
@@ -285,9 +281,11 @@ export function buildSettlement(
     p.saldo = roundTo(p.rechnungsbetrag - abschlaege, 2);
     const offene = offeneJeBewohner.get(p.bewohnerId);
     if (offene) {
-      p.hinweise.push(
-        `Offene Abschläge über ${roundTo(offene, 2).toFixed(2).replace(".", ",")} € im Jahr – nicht verrechnet.`,
-      );
+      // Der Betrag bleibt eine Zahl; die Formatierung übernimmt die Oberfläche.
+      p.hinweise.push({
+        code: "abrechnung.offeneAbschlaege",
+        params: { betrag: roundTo(offene, 2) },
+      });
     }
   }
 

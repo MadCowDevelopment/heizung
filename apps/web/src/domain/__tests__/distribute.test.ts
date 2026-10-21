@@ -70,7 +70,7 @@ describe("R3 – Energieverteilung nach Wasseranteil", () => {
       },
     ];
     const e = distributeEnergy(3000, verbrauch, "warm");
-    expect(e.hinweise.get(IDS.bewohnerB)?.[0]).toMatch(/Kaltwasser/);
+    expect(e.hinweise.get(IDS.bewohnerB)?.[0]?.code).toBe("verteilung.fallbackKalt");
     expect(e.anteile.get(IDS.bewohnerA)).toBeCloseTo(2000, 6);
     expect(e.anteile.get(IDS.bewohnerB)).toBeCloseTo(1000, 6);
   });
@@ -101,7 +101,7 @@ describe("R3 – Energieverteilung nach Wasseranteil", () => {
     expect(e.gleichverteilung).toBe(true);
     expect(e.anteile.get(IDS.bewohnerA)).toBeCloseTo(500, 6);
     expect(e.anteile.get(IDS.bewohnerB)).toBeCloseTo(500, 6);
-    expect(e.hinweise.get(IDS.bewohnerA)?.[0]).toMatch(/Administrator/);
+    expect(e.hinweise.get(IDS.bewohnerA)?.[0]?.code).toBe("verteilung.administratorfrage");
   });
 
   it("schlüsselWert liefert den Fallback-Zähler", () => {

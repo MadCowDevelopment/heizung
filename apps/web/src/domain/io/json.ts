@@ -15,18 +15,25 @@ import {
   type AppState,
   type Bewohner,
   type Einstellungen,
+  type FachMeldung,
   type Preis,
   type Zahlung,
   type Zaehler,
 } from "../types";
 
-/** Fehler beim Import. */
+/**
+ * Fehler beim Import.
+ *
+ * Trägt einen **sprachneutralen** Code statt eines fest verdrahteten
+ * deutschen Satzes; die Oberfläche löst den Code über i18n auf.
+ */
 export class ImportFehler extends Error {
   constructor(
-    message: string,
+    readonly meldung: FachMeldung,
+    /** Technische Details (z. B. die Meldung des JSON-Parsers). */
     readonly hinweise: string[] = [],
   ) {
-    super(message);
+    super(meldung.code);
     this.name = "ImportFehler";
   }
 }
@@ -59,22 +66,23 @@ export function importiereJson(text: string): AppState {
   try {
     roh = JSON.parse(text);
   } catch (fehler) {
-    throw new ImportFehler("Die Datei ist kein gültiges JSON.", [
+    throw new ImportFehler({ code: "json.keinGueltigesJson" }, [
       fehler instanceof Error ? fehler.message : String(fehler),
     ]);
   }
 
   if (typeof roh !== "object" || roh === null || Array.isArray(roh)) {
-    throw new ImportFehler("Die Datei enthält kein gültiges Datenobjekt.");
+    throw new ImportFehler({ code: "json.keinDatenobjekt" });
   }
 
   const obj = roh as Partial<AppState> & Record<string, unknown>;
   const schemaVersion = typeof obj.schemaVersion === "number" ? obj.schemaVersion : SCHEMA_VERSION;
 
   if (schemaVersion > SCHEMA_VERSION) {
-    throw new ImportFehler(
-      `Die Datei hat Schema-Version ${schemaVersion}, diese App unterstützt ${SCHEMA_VERSION}. Bitte die App aktualisieren.`,
-    );
+    throw new ImportFehler({
+      code: "json.schemaVersion",
+      params: { datei: schemaVersion, appVersion: SCHEMA_VERSION },
+    });
   }
 
   const einstellungen: Einstellungen = {

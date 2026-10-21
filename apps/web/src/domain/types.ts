@@ -27,6 +27,68 @@ export type AbschlagRhythmus = "monatlich" | "jaehrlich";
 /** Status einer Abrechnung. */
 export type AbrechnungStatus = "entwurf" | "verteilt" | "beglichen";
 
+/**
+ * Sprachneutraler fachlicher Hinweis.
+ *
+ * Die Domäne kennt keine Sprache (docs/architecture.md §3: „`domain`
+ * importiert nichts außer `domain`"). Sie liefert deshalb **Codes plus
+ * Interpolationsparameter**; die Oberfläche löst sie über i18n auf
+ * (`i18n/meldung.ts`). Die Codes sind die Schlüssel der Kataloge in
+ * `i18n/de.ts` und `i18n/en.ts`.
+ */
+export interface FachMeldung {
+  /** Katalogschlüssel, z. B. `csv.unbekannterZaehler`. */
+  code: MeldungsCode;
+  /** Werte für die Platzhalter des Katalogs, z. B. `{ name: "Heizung" }`. */
+  params?: Record<string, string | number>;
+}
+
+/**
+ * Alle Codes, die Domäne und Speicher erzeugen können.
+ *
+ * Die Liste ist absichtlich geschlossen und die einzige Quelle der Wahrheit:
+ * `MeldungsCode` wird daraus abgeleitet, und ein Test stellt sicher, dass
+ * jeder Code in **beiden** Katalogen (`de.ts`, `en.ts`) vorhanden ist.
+ */
+export const MELDUNGS_CODES = [
+  // CSV-Import (R11)
+  "csv.spalteZaehlerFehlt",
+  "csv.spalteDatumFehlt",
+  "csv.spalteStandFehlt",
+  "csv.unbekannterZaehler",
+  "csv.ungueltigesDatum",
+  "csv.ungueltigerStand",
+  "csv.ueberschrieben",
+  // JSON-Import
+  "json.keinGueltigesJson",
+  "json.keinDatenobjekt",
+  "json.schemaVersion",
+  // Plausibilität (R8)
+  "plausibilitaet.unvollstaendig",
+  "plausibilitaet.negativ",
+  "plausibilitaet.ausreisser",
+  // Abrechnung (R5/R6)
+  "abrechnung.zaehlerUnvollstaendig",
+  "abrechnung.keineVerteilungsbasisEnergie",
+  "abrechnung.keineVerteilungsbasisWarm",
+  "abrechnung.keinEigenerZaehler",
+  "abrechnung.keineTheoretischenKosten",
+  "abrechnung.offeneAbschlaege",
+  // Verteilung (R3)
+  "verteilung.fallbackWarm",
+  "verteilung.fallbackKalt",
+  "verteilung.administratorfrage",
+  // Speicher
+  "speicher.indexeddbOeffnenFehlgeschlagen",
+  "speicher.indexeddbTransaktionFehlgeschlagen",
+  "speicher.indexeddbNichtVerfuegbar",
+  "speicher.indexeddbBlockiert",
+  "speicher.pfadLeer",
+] as const;
+
+/** Katalogschlüssel einer fachlichen Meldung. */
+export type MeldungsCode = (typeof MELDUNGS_CODES)[number];
+
 /** Bewohner/in der Wohngemeinschaft. */
 export interface Bewohner {
   id: string;
@@ -122,8 +184,12 @@ export interface AbrechnungsPosition {
   summeAbschlaege: number;
   /** Saldo in Euro: > 0 Nachzahlung, < 0 Auszahlung (R6). */
   saldo: number;
-  /** Sichtbare Abweichungen/Hinweise (z. B. Verteilungs-Fallback). */
-  hinweise: string[];
+  /**
+   * Sichtbare Abweichungen/Hinweise (z. B. Verteilungs-Fallback).
+   *
+   * Sprachneutral: Codes + Parameter, die die Oberfläche auflöst.
+   */
+  hinweise: FachMeldung[];
 }
 
 /** Jahresabrechnung. */
@@ -167,8 +233,13 @@ export interface AppState {
   einstellungen: Einstellungen;
 }
 
-/** Schema-Version der Ablage. */
-export const SCHEMA_VERSION = 3;
+/**
+ * Schema-Version der Ablage.
+ *
+ * Version 4: Die fachlichen Hinweise sind von fest verdrahtetem deutschem
+ * Text auf sprachneutrale Codes umgestellt (docs/architecture.md §3).
+ */
+export const SCHEMA_VERSION = 4;
 
 /** Standard-Einstellungen (docs/requirements.md §3, R3/R4). */
 export const DEFAULT_EINSTELLUNGEN: Einstellungen = {

@@ -63,6 +63,10 @@ Abrechnung ──1:n──> Position ──n:1──> Bewohner
 `{ bewohnerId, wasserWarmM3, wasserKaltM3, energieMWh, kostenTheoretisch, anteilProzent, rechnungsbetrag, summeAbschlaege, saldo }`
 `saldo > 0` → Nachzahlung, `saldo < 0` → Auszahlung.
 
+Sichtbare Abweichungen/Hinweise stehen in `hinweise` als **sprachneutrale Codes mit
+Parametern** (`{ code, params? }`), nicht als fest verdrahteter Text – die Oberfläche
+löst sie über i18n auf.
+
 ---
 
 ## 3. Fachregeln (Berechnungen)
@@ -255,7 +259,7 @@ Ablage als **eine JSON-Datei** in einem privaten GitHub-Repo (`data/state.json`)
 
 ```jsonc
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "updatedAt": "…",
   "bewohner":   [ { "id", "name", "email", "notiz", "aktiv", "farbe", "updatedAt", "deleted" } ],
   "zaehler":    [ { "id", "bezeichnung", "typ", "einheit", "bewohnerId", "enthaeltIds": [],
@@ -272,7 +276,7 @@ Ablage als **eine JSON-Datei** in einem privaten GitHub-Repo (`data/state.json`)
 }
 ```
 
-`ablesung` ist pro `(zaehlerId, datum)` eindeutig. `abrechnung.positionen` enthält eingefrorene Positionen. Fotos/Belege bleiben lokal im Gerät (IndexedDB), nicht im Daten-Repo.
+`ablesung` ist pro `(zaehlerId, datum)` eindeutig. `abrechnung.positionen` enthält eingefrorene Positionen (inkl. `hinweise` als Code-Listen). Fotos/Belege bleiben lokal im Gerät (IndexedDB), nicht im Daten-Repo.
 
 ---
 

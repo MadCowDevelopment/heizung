@@ -12,6 +12,7 @@
  */
 
 import { SpeicherFehler, type StorageAdapter } from "./adapter";
+import type { MeldungsCode } from "../domain/types";
 
 const DB_NAME = "heizung";
 const DB_VERSION = 1;
@@ -40,8 +41,8 @@ function indexedDbVerfuegbar(): boolean {
   }
 }
 
-function idbFehler(aktion: string, fehler: unknown): never {
-  throw new SpeicherFehler(`IndexedDB ${aktion} fehlgeschlagen.`, fehler);
+function idbFehler(code: MeldungsCode, fehler: unknown): never {
+  throw new SpeicherFehler(code, undefined, fehler);
 }
 
 export class IndexedDbAdapter implements StorageAdapter {
@@ -59,7 +60,7 @@ export class IndexedDbAdapter implements StorageAdapter {
   private async dbOeffnen(): Promise<IDBDatabase> {
     if (this.db) return this.db;
     if (!this.verfuegbar) {
-      throw new SpeicherFehler("IndexedDB steht in dieser Umgebung nicht zur Verfügung.");
+      throw new SpeicherFehler("speicher.indexeddbNichtVerfuegbar");
     }
     return new Promise<IDBDatabase>((resolve) => {
       const anfrage = indexedDB.open(DB_NAME, DB_VERSION);
@@ -79,8 +80,8 @@ export class IndexedDbAdapter implements StorageAdapter {
         this.db = anfrage.result;
         resolve(this.db);
       };
-      anfrage.onerror = () => idbFehler("öffnen", anfrage.error);
-      anfrage.onblocked = () => idbFehler("öffnen", new Error("Anderer Tab blockiert die Datenbank."));
+      anfrage.onerror = () => idbFehler("speicher.indexeddbOeffnenFehlgeschlagen", anfrage.error);
+      anfrage.onblocked = () => idbFehler("speicher.indexeddbBlockiert", anfrage.error);
     });
   }
 
@@ -94,8 +95,9 @@ export class IndexedDbAdapter implements StorageAdapter {
       const transaktion = db.transaction(store, modus);
       const anfrage = arbeit(transaktion.objectStore(store));
       anfrage.onsuccess = () => resolve(anfrage.result);
-      anfrage.onerror = () => idbFehler("transaktion", anfrage.error);
-      transaktion.onabort = () => idbFehler("transaktion", transaktion.error);
+      anfrage.onerror = () => idbFehler("speicher.indexeddbTransaktionFehlgeschlagen", anfrage.error);
+      transaktion.onabort = () =>
+        idbFehler("speicher.indexeddbTransaktionFehlgeschlagen", transaktion.error);
     });
   }
 
@@ -111,7 +113,7 @@ export class IndexedDbAdapter implements StorageAdapter {
 
   async write(pfad: string, inhalt: string): Promise<void> {
     if (typeof pfad !== "string" || pfad.length === 0) {
-      throw new SpeicherFehler("Pfad darf nicht leer sein.");
+      throw new SpeicherFehler("speicher.pfadLeer");
     }
     await this.tx(STORE_DATEIEN, "readwrite", (s) => s.put(inhalt, pfad));
   }

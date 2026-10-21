@@ -23,7 +23,7 @@ export class MemoryAdapter implements StorageAdapter {
 
   async write(pfad: string, inhalt: string): Promise<void> {
     if (typeof pfad !== "string" || pfad.length === 0) {
-      throw new SpeicherFehler("Pfad darf nicht leer sein.");
+      throw new SpeicherFehler("speicher.pfadLeer");
     }
     this.inhalt.set(pfad, inhalt);
   }

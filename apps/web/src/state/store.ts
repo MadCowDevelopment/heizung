@@ -21,12 +21,13 @@ import {
   type ISODate,
   type Zaehler,
 } from "../domain/types";
-import { importiereJson } from "../domain/io/json";
+import { importiereJson, ImportFehler } from "../domain/io/json";
 import { importiereStartablesungen, type CsvImportErgebnis } from "../domain/io/csv";
 import { today } from "../domain/calc/dates";
 import { containedMeterIds } from "../domain/calc/contains";
 import i18n from "../i18n";
-import type { StorageAdapter } from "../storage/adapter";
+import { meldeText } from "../i18n/meldung";
+import { SpeicherFehler, type StorageAdapter } from "../storage/adapter";
 import { IndexedDbAdapter } from "../storage/indexeddb";
 import { MemoryAdapter } from "../storage/memory";
 import { id } from "./ids";
@@ -57,6 +58,21 @@ export type SpeicherStatus = "leer" | "geladen" | "gespeichert" | "fehler";
 export interface Meldung {
   art: "info" | "warnung" | "fehler" | "erfolg";
   text: string;
+}
+
+/**
+ * Übersetzt einen Fehler aus Domäne/Speicher in einen Text.
+ *
+ * Fehler tragen sprachneutrale Codes (docs/architecture.md §3); erst hier
+ * werden sie zu Text. Andere `Error` behalten ihre technische Meldung;
+ * alles Übrige liefert `null` – die Aufrufer verwenden dann eine
+ * allgemeine Formulierung.
+ */
+function fehlerText(fehler: unknown): string | null {
+  if (fehler instanceof ImportFehler) return meldeText(fehler.meldung);
+  if (fehler instanceof SpeicherFehler) return meldeText(fehler.meldung);
+  if (fehler instanceof Error) return fehler.message;
+  return null;
 }
 
 interface AppStore {
@@ -176,15 +192,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({ state: emptyState(), status: "leer", geladen: true });
       }
     } catch (fehler) {
+      const grund = fehlerText(fehler);
       set({
         status: "fehler",
         geladen: true,
         meldung: {
           art: "fehler",
-          text:
-            fehler instanceof Error
-              ? i18n.t("store.ladenFehler", { reason: fehler.message })
-              : i18n.t("store.ladenFehlerOhneGrund"),
+          text: grund
+            ? i18n.t("store.ladenFehler", { reason: grund })
+            : i18n.t("store.ladenFehlerOhneGrund"),
         },
       });
     }
@@ -196,14 +212,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await speicher.write(STATE_PFAD, JSON.stringify({ ...state, updatedAt: jetzt() }, null, 2));
       set({ status: "gespeichert" });
     } catch (fehler) {
+      const grund = fehlerText(fehler);
       set({
         status: "fehler",
         meldung: {
           art: "fehler",
-          text:
-            fehler instanceof Error
-              ? i18n.t("store.speichernFehler", { reason: fehler.message })
-              : i18n.t("store.speichernFehlerOhneGrund"),
+          text: grund
+            ? i18n.t("store.speichernFehler", { reason: grund })
+            : i18n.t("store.speichernFehlerOhneGrund"),
         },
       });
     }
@@ -442,9 +458,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       void get().speichern();
       return { ok: true, text: i18n.t("store.importiert") };
     } catch (fehler) {
+      const grund = fehlerText(fehler);
       return {
         ok: false,
-        text: fehler instanceof Error ? fehler.message : i18n.t("store.importFehlgeschlagen"),
+        text: grund ?? i18n.t("store.importFehlgeschlagen"),
       };
     }
   },

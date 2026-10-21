@@ -6,7 +6,7 @@
  * akzeptiert und Datumsformate (`YYYY-MM-DD`, `DD.MM.YYYY`) gelesen.
  */
 
-import type { Ablesung, ISODate, Zaehler } from "../types";
+import type { Ablesung, FachMeldung, ISODate, Zaehler } from "../types";
 import { isValidISODate } from "../calc/dates";
 
 /** Mögliche Trennzeichen. */
@@ -19,8 +19,13 @@ export type CsvZeile = Record<string, string>;
 export interface CsvImportErgebnis {
   /** Erfolgreich importierte Ablesungen. */
   ablesungen: Ablesung[];
-  /** Zeilen mit Fehlern. */
-  fehler: { zeile: number; roh: string; grund: string }[];
+  /**
+   * Zeilen mit Fehlern.
+   *
+   * `grund` ist ein sprachneutraler Code + Parameter; die Auflösung
+   * übernimmt die Oberfläche (i18n).
+   */
+  fehler: { zeile: number; roh: string; grund: FachMeldung }[];
   /** Erkanntes Trennzeichen. */
   trennzeichen: CsvTrennzeichen;
   /** Erkannte Spaltennamen (normalisiert). */
@@ -242,7 +247,7 @@ export function importiereStartablesungen(
       fehler.push({
         zeile: zeilennummer,
         roh: JSON.stringify(zeile),
-        grund: "Spalte „Zähler“ fehlt.",
+        grund: { code: "csv.spalteZaehlerFehlt" },
       });
       return;
     }
@@ -250,7 +255,7 @@ export function importiereStartablesungen(
       fehler.push({
         zeile: zeilennummer,
         roh: JSON.stringify(zeile),
-        grund: "Spalte „Datum“ fehlt.",
+        grund: { code: "csv.spalteDatumFehlt" },
       });
       return;
     }
@@ -258,7 +263,7 @@ export function importiereStartablesungen(
       fehler.push({
         zeile: zeilennummer,
         roh: JSON.stringify(zeile),
-        grund: "Spalte „Stand“ fehlt.",
+        grund: { code: "csv.spalteStandFehlt" },
       });
       return;
     }
@@ -268,7 +273,7 @@ export function importiereStartablesungen(
       fehler.push({
         zeile: zeilennummer,
         roh: JSON.stringify(zeile),
-        grund: `Unbekannter Zähler „${zaehlerWert}“.`,
+        grund: { code: "csv.unbekannterZaehler", params: { name: zaehlerWert } },
       });
       return;
     }
@@ -278,7 +283,7 @@ export function importiereStartablesungen(
       fehler.push({
         zeile: zeilennummer,
         roh: JSON.stringify(zeile),
-        grund: `Ungültiges Datum „${datumWert}“.`,
+        grund: { code: "csv.ungueltigesDatum", params: { wert: datumWert } },
       });
       return;
     }
@@ -288,7 +293,7 @@ export function importiereStartablesungen(
       fehler.push({
         zeile: zeilennummer,
         roh: JSON.stringify(zeile),
-        grund: `Ungültiger Stand „${standWert}“.`,
+        grund: { code: "csv.ungueltigerStand", params: { wert: standWert } },
       });
       return;
     }
@@ -302,7 +307,11 @@ export function importiereStartablesungen(
     };
 
     if (bestaetigung && !bestaetigung(vorschlag)) {
-      fehler.push({ zeile: zeilennummer, roh: JSON.stringify(zeile), grund: "Überschrieben." });
+      fehler.push({
+        zeile: zeilennummer,
+        roh: JSON.stringify(zeile),
+        grund: { code: "csv.ueberschrieben" },
+      });
       return;
     }
 

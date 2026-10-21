@@ -9,6 +9,8 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../state/store";
+import { meldeText } from "../../i18n/meldung";
+import type { FachMeldung } from "../../domain/types";
 import { KnopfPrimär, KnopfSekundaer, Meldungszeile } from "./Primitives";
 
 export function ImportStartablesungen({ onFertig }: { onFertig: () => void }) {
@@ -16,7 +18,7 @@ export function ImportStartablesungen({ onFertig }: { onFertig: () => void }) {
   const importStartablesungen = useAppStore((s) => s.importStartablesungen);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [fehler, setFehler] = useState<{ zeile: number; roh: string; grund: string }[]>([]);
+  const [fehler, setFehler] = useState<{ zeile: number; roh: string; grund: FachMeldung }[]>([]);
   const [meldung, setMeldung] = useState<string | null>(null);
 
   const dateiWaehlen = async (datei: File) => {
@@ -79,7 +81,7 @@ export function ImportStartablesungen({ onFertig }: { onFertig: () => void }) {
               {fehler.map((f) => (
                 <tr key={f.zeile} style={{ borderTop: "1px solid #e3ded4" }}>
                   <td className="tnum py-1 pr-2 align-top">{f.zeile}</td>
-                  <td className="py-1 align-top">{f.grund}</td>
+                  <td className="py-1 align-top">{meldeText(f.grund)}</td>
                 </tr>
               ))}
             </tbody>

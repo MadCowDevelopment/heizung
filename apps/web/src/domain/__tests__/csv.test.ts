@@ -78,7 +78,8 @@ describe("R11 – CSV-Import von Startablesungen", () => {
     const ergebnis = importiereStartablesungen(csv, zaehler());
     expect(ergebnis.ablesungen).toHaveLength(0);
     expect(ergebnis.fehler).toHaveLength(1);
-    expect(ergebnis.fehler[0].grund).toMatch(/Unbekannter Zähler/);
+    expect(ergebnis.fehler[0].grund.code).toBe("csv.unbekannterZaehler");
+    expect(ergebnis.fehler[0].grund.params).toMatchObject({ name: "gibtsnicht" });
     expect(ergebnis.fehler[0].zeile).toBe(2);
   });
 
@@ -86,14 +87,15 @@ describe("R11 – CSV-Import von Startablesungen", () => {
     const csv = ["Zähler;Datum;Stand", `${IDS.zaehlerEnergie};31.02.2025;10`].join("\n");
     const ergebnis = importiereStartablesungen(csv, zaehler());
     expect(ergebnis.fehler).toHaveLength(1);
-    expect(ergebnis.fehler[0].grund).toMatch(/Datum/);
+    expect(ergebnis.fehler[0].grund.code).toBe("csv.ungueltigesDatum");
+    expect(ergebnis.fehler[0].grund.params).toMatchObject({ wert: "31.02.2025" });
   });
 
   it("meldet einen fehlenden Stand als Fehler", () => {
     const csv = ["Zähler;Datum", `${IDS.zaehlerEnergie};31.12.2024`].join("\n");
     const ergebnis = importiereStartablesungen(csv, zaehler());
     expect(ergebnis.fehler).toHaveLength(1);
-    expect(ergebnis.fehler[0].grund).toMatch(/Stand/);
+    expect(ergebnis.fehler[0].grund.code).toBe("csv.spalteStandFehlt");
   });
 
   it("erzeugt eindeutige IDs aus (Zähler, Datum)", () => {
@@ -111,7 +113,7 @@ describe("R11 – CSV-Import von Startablesungen", () => {
     const csv = ["Zähler;Datum;Stand", `${IDS.zaehlerEnergie};31.12.2024;10`].join("\n");
     const ergebnis = importiereStartablesungen(csv, zaehler(), () => false);
     expect(ergebnis.ablesungen).toHaveLength(0);
-    expect(ergebnis.fehler[0].grund).toMatch(/Überschrieben/);
+    expect(ergebnis.fehler[0].grund.code).toBe("csv.ueberschrieben");
   });
 
   it("exportiert Ablesungen als CSV und liest sie wieder ein", () => {

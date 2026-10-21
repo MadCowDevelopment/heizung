@@ -155,6 +155,56 @@ export const de = {
     zeile: "Zeile",
     grund: "Grund",
   },
+  csv: {
+    spalteZaehlerFehlt: "Spalte „Zähler“ fehlt.",
+    spalteDatumFehlt: "Spalte „Datum“ fehlt.",
+    spalteStandFehlt: "Spalte „Stand“ fehlt.",
+    unbekannterZaehler: "Unbekannter Zähler „{{name}}“.",
+    ungueltigesDatum: "Ungültiges Datum „{{wert}}“.",
+    ungueltigerStand: "Ungültiger Stand „{{wert}}“.",
+    ueberschrieben: "Überschrieben.",
+  },
+  json: {
+    keinGueltigesJson: "Die Datei ist kein gültiges JSON.",
+    keinDatenobjekt: "Die Datei enthält kein gültiges Datenobjekt.",
+    schemaVersion:
+      "Die Datei hat Schema-Version {{datei}}, diese App unterstützt {{appVersion}}. Bitte die App aktualisieren.",
+  },
+  plausibilitaet: {
+    unvollstaendig:
+      "Für „{{name}}“ fehlt eine Start- oder Endablesung im Zeitraum – nicht abrechenbar.",
+    negativ:
+      "„{{name}}“ hat einen negativen Verbrauch ({{wert, number(minimumFractionDigits:2)}}) – Zählerwechsel oder Fehlablesung prüfen.",
+    ausreisser:
+      "„{{name}}“ liegt mit {{wert, number(minimumFractionDigits:2)}} über dem {{faktor}}-fachen des Medians ({{median, number(minimumFractionDigits:2)}}) der Vorperioden.",
+  },
+  abrechnung: {
+    zaehlerUnvollstaendig:
+      "Zähler „{{name}}“ ist für den Zeitraum unvollständig – wird nicht abgerechnet.",
+    keineVerteilungsbasisEnergie:
+      "Für die Energieverteilung fehlt die Basis (kein Wasserverbrauch) – bitte Administrator fragen (Vorschlag: gleiche Verteilung).",
+    keineVerteilungsbasisWarm:
+      "Für den Gemeinschafts-Warmwasserzähler fehlt die Verteilungsbasis – bitte Administrator fragen.",
+    keinEigenerZaehler: "Kein eigener Wasserzähler – von der Verteilung ausgenommen.",
+    keineTheoretischenKosten:
+      "Keine theoretischen Kosten als Verteilungsbasis – Betreiberbetrag gleichmäßig verteilt.",
+    offeneAbschlaege:
+      "Offene Abschläge über {{betrag, currency(EUR)}} im Jahr – nicht verrechnet.",
+  },
+  verteilung: {
+    // Der Code benennt den Zähler, auf den zurückgefallen wurde.
+    fallbackWarm: "Kein Zähler des aktiven Verteilungs-Schlüssels – Verteilung nach Warmwasser.",
+    fallbackKalt: "Kein Zähler des aktiven Verteilungs-Schlüssels – Verteilung nach Kaltwasser.",
+    administratorfrage:
+      "Kein Wasserverbrauch als Verteilungsbasis – bitte Administrator fragen (Vorschlag: gleiche Verteilung).",
+  },
+  speicher: {
+    indexeddbOeffnenFehlgeschlagen: "IndexedDB konnte nicht geöffnet werden.",
+    indexeddbTransaktionFehlgeschlagen: "IndexedDB-Transaktion fehlgeschlagen.",
+    indexeddbNichtVerfuegbar: "IndexedDB steht in dieser Umgebung nicht zur Verfügung.",
+    indexeddbBlockiert: "Anderer Tab blockiert die Datenbank.",
+    pfadLeer: "Pfad darf nicht leer sein.",
+  },
   store: {
     ladenFehler: "Daten konnten nicht geladen werden: {{reason}}",
     ladenFehlerOhneGrund: "Daten konnten nicht geladen werden.",

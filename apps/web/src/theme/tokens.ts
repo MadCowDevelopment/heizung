@@ -9,7 +9,7 @@
  *   warm    #c62828 -> 5.30:1
  *   kalt    #1565c0 -> 5.42:1
  *   energie #a34f00 -> 5.39:1  (Textvariante; #ef6c00 ist die Flaechenfarbe)
- *   ink-3   #6b6862 -> 4.58:1
+ *   ink-3   #6b6862 -> 5.24:1
  */
 
 import type { MeterType } from "../domain/types";

@@ -52,7 +52,7 @@ tool, sondern ein nachrechenbares Modell.
   durch Unit-Tests abgesichert. Daran darf die Oberfläche nichts ändern.
 - **Rechenkern als reine Funktionen** (`domain/`), ohne Store und ohne Netz – dadurch
   testbar und später serverfähig.
-- **Kein Backend.** Persistenz über privates GitHub-Repo (`data/state.json`, Schema-Version 3)
+- **Kein Backend.** Persistenz über privates GitHub-Repo (`data/state.json`, Schema-Version 4)
   per Fine-grained PAT. Der Token wird zur Laufzeit eingegeben, nie gebaut.
 - **Offline-fähige Eingabe** mit lokaler Queue; ein Request pro Sync-Zyklus.
 - **Export/Import** (JSON mit `schemaVersion`, CSV) ist die Notlösung und der Umzugsweg.

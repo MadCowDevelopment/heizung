@@ -19,7 +19,7 @@ nicht der Code.
 | [`DESIGN.md`](DESIGN.md) | Gestaltungssystem „Werkbank": Farbpalette, Typografie, Flächen, Regeln |
 
 Domänenmodell und Datenmodell stehen in `docs/requirements.md` §2 und §7; die Datenablage
-als JSON (`data/state.json`, Schema-Version 3) in `docs/architecture.md` §4.
+als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
 
 ## Status: Meilenstein M0 („statischer Prototyp“)
 
@@ -33,8 +33,10 @@ Kurzfassung:
 - **Zustandsverwaltung** mit zustand; jede Mutation schreibt sofort in den lokalen Speicher.
 - **Persistenz** über `StorageAdapter` – im Browser IndexedDB (Fallback: Arbeitsspeicher).
 - **i18n** mit i18next/react-i18next: deutsche und englische Kataloge sind **jeweils
-  schlüsselgleich** (137 Schlüssel), und die gesamte Bedienoberfläche ist über den Katalog
+  schlüsselgleich** (164 Schlüssel), und die gesamte Bedienoberfläche ist über den Katalog
   übersetzt – im Inneren wie in der Oberfläche steht kein fest verdrahteter deutscher Text.
+  Die Domänen- und Speicherschicht liefert dazu **sprachneutrale Codes** (plus Parameter);
+  erst die Oberfläche löst sie zum Text auf – so bleibt der Rechenkern frei von i18n.
   Ein Sprachumschalter in der Oberfläche folgt laut `docs/requirements.md` §6.4 in M3.
 - **Domänenlogik** als reine Funktionen ohne UI- und Netzabhängigkeit: Periodenverbrauch je
   Zähler, enthaltene Zähler mit Zyklusschutz, Verteilung nach Wasseranteil, Kosten mit
@@ -43,7 +45,8 @@ Kurzfassung:
   und der JSON-Export/-Import des Gesamtzustands – jeweils auf Domänenebene.
 - **Bedienoberfläche** für die Bildschirme S2 (Zähler), S3 (Ablesung) und S4 (Bewohner) –
   inklusive Import von Startablesungen (CSV) und setzbarem Abschlagsplan je Bewohner.
-- **Testsuite** mit Vitest (11 Testdateien, 126 Tests) für Rechenkern, Im-/Export und Store.
+- **Testsuite** mit Vitest (12 Testdateien, 133 Tests) für Rechenkern, Im-/Export, Store
+  und die i18n-Katalog-Parität.
 
 **Noch nicht umgesetzt**
 
@@ -124,7 +127,7 @@ veröffentlicht das Ergebnis nach <https://madcowdevelopment.github.io/heizung/>
 │   │   ├── domain/               # Rechenkern als reine Funktionen
 │   │   │   ├── calc/             # R0–R9: Einheiten, Verbrauch, Verteilung, Kosten, Abrechnung
 │   │   │   ├── io/               # CSV (Startablesungen, Ablesungen) und JSON (Zustand)
-│   │   │   └── types.ts          # Domänenmodell (Entitäten, Schema-Version 3)
+│   │   │   └── types.ts          # Domänenmodell (Entitäten, Schema-Version 4)
 │   │   ├── state/                # zustand-Store
 │   │   ├── storage/              # StorageAdapter: IndexedDB, Memory (kein GitHub-Adapter)
 │   │   ├── ui/                   # Screens und Bausteine

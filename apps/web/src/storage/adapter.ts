@@ -8,6 +8,8 @@
  * Ein Pfad ist ein einfacher Schlüssel, z. B. `data/state.json`.
  */
 
+import type { FachMeldung, MeldungsCode } from "../domain/types";
+
 export interface StorageAdapter {
   /** Kurzname des Adapters, z. B. `indexeddb` – für Statusanzeigen. */
   readonly name: string;
@@ -25,14 +27,28 @@ export interface StorageAdapter {
   delete(pfad: string): Promise<void>;
 }
 
-/** Fehler beim Zugriff auf den Speicher. */
+/**
+ * Fehler beim Zugriff auf den Speicher.
+ *
+ * Trägt einen **sprachneutralen** Code statt eines fest verdrahteten
+ * deutschen Satzes; die Oberfläche löst den Code über i18n auf.
+ */
 export class SpeicherFehler extends Error {
   constructor(
-    message: string,
+    /** Katalogschlüssel des Fehlers, z. B. `speicher.pfadLeer`. */
+    readonly code: MeldungsCode,
+    /** Werte für die Platzhalter des Katalogs. */
+    readonly params?: Record<string, string | number>,
+    /** Technische Ursache (z. B. die DOMException von IndexedDB). */
     readonly ursache?: unknown,
   ) {
-    super(message);
+    super(code);
     this.name = "SpeicherFehler";
+  }
+
+  /** Die Meldung in Katalogform (Code + Parameter). */
+  get meldung(): FachMeldung {
+    return { code: this.code, params: this.params };
   }
 }
 

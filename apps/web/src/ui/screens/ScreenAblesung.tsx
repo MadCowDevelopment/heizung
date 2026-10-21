@@ -388,12 +388,6 @@ export function ScreenAblesung() {
         })}
       </div>
 
-      <div className="sticky bottom-0 -mx-4 mt-4 px-4 py-3" style={{ backgroundColor: "#faf8f4" }}>
-        <div className="flex items-center justify-between gap-3">
-          <Textaktion onClick={entwurfSichern}>{t("ablesung.entwerf")}</Textaktion>
-          <KnopfPrimär onClick={speichern}>{t("ablesung.speichern")}</KnopfPrimär>
-        </div>
-      </div>
     </div>
   );
 }

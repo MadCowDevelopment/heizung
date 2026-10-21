@@ -49,6 +49,7 @@ describe("R8 – Plausibilitätsprüfung", () => {
     expect(pruefung.blockiert).toBe(true);
     const h = pruefung.hinweise.find((x) => x.art === "negativ");
     expect(h?.blockierend).toBe(true);
+    expect(h?.text.code).toBe("plausibilitaet.negativ");
     // 4 MWh − 10 MWh = −6 MWh = −6000 kWh
     expect(h?.wert).toBeCloseTo(-6000, 6);
   });
@@ -62,6 +63,7 @@ describe("R8 – Plausibilitätsprüfung", () => {
     );
     expect(pruefung.hinweise).toHaveLength(1);
     expect(pruefung.hinweise[0].art).toBe("unvollstaendig");
+    expect(pruefung.hinweise[0].text.code).toBe("plausibilitaet.unvollstaendig");
     expect(pruefung.hinweise[0].blockierend).toBe(false);
     expect(pruefung.blockiert).toBe(false);
   });
@@ -97,6 +99,7 @@ describe("R8 – Plausibilitätsprüfung", () => {
     const h = pruefung.hinweise.find((x) => x.art === "ausreisser");
     expect(h).toBeDefined();
     expect(h?.blockierend).toBe(true);
+    expect(h?.text.code).toBe("plausibilitaet.ausreisser");
     expect(h?.referenz).toBeCloseTo(1000, 6);
     expect(h?.wert).toBeCloseTo(10000, 6);
     expect(pruefung.blockiert).toBe(true);

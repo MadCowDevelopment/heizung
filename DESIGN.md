@@ -124,10 +124,17 @@ die Lauflinie, die beim Erfassen weiterläuft, solange noch etwas fehlt.
 - Farbe ist Fachinformation, nie Dekoration — und nie allein.
 - Genau eine Bewegung, und sie zeigt Arbeitsstand an.
 
+**Konzept-Seed:** Der Richtungskontrakt (`apps/web/src/ui/direction.ts`) führt im
+Block FORM den Seed `aa27a2b2` (Modus `operate`, zugewiesener Index 3). Der Roll
+wurde nicht übersprungen: `concept-seed.mjs --from aa27a2b2 --candidate-count 7`
+gibt ihn reproduzierbar aus. Das Blatt kommt aus der eigenen geerdeten Liste; ein
+Katalog-Challenger wurde nicht übernommen.
+
 ## Colors
 
 Eine warme Papierpalette mit Graphit-Tinte und drei gesetzten Fachfarben; die
-Kontraste sind auf `#faf8f4` gemessen und liegen durchgehend über 4,5:1.
+Kontraste sind auf `#faf8f4` gemessen: jede Textfarbe liegt über 4,5:1, Linien
+und Flächen darunter.
 
 ### Neutral
 - **Papier (bench)** (`#faf8f4`): die Grundfläche der gesamten App, gesetzt in diesem Design-System; die Fachfarben stehen in docs/architecture.md §10.
@@ -135,7 +142,7 @@ Kontraste sind auf `#faf8f4` gemessen und liegen durchgehend über 4,5:1.
 - **Papier vertieft (bench-sunk)** (`#f2eee6`): eingesetzte Formularblätter und Bänder, die sich vom Beleg abheben.
 - **Tinte (ink)** (`#1b1a17`): Fließtext und Überschriften, zugleich Grundfarbe des Primärknopfes.
 - **Tinte gedämpft (ink-2)** (`#55524c`): Beschriftungen, Labels, Nebentexte in Meldungen.
-- **Tinte schwach (ink-3)** (`#6b6862`): Hilfstexte, Platzhalter, inaktive Navigation (4,58:1 auf Papier).
+- **Tinte schwach (ink-3)** (`#6b6862`): Hilfstexte, Platzhalter, inaktive Navigation (5,24:1 auf Papier).
 - **Haarlinie (rule)** (`#e3ded4`): die Trennlinie des Belegs, untere Blattkante.
 - **Linie kräftig (rule-strong)** (`#c9c3b6`): Unterkante von Eingabefeldern, aktiver Navigationsreiter, Oberkante des Belegs.
 
@@ -184,6 +191,8 @@ Produkt.
 - **Fließtext** (400, 1rem, 1,5): Grundgröße, Seitenhöhe 16 px.
 - **Nebentext** (400, 0,8125rem, 1,5): Erläuterungen unter Werten.
 - **Zahl** (400, 1,125rem / 0,875rem, 1,5): Stände und Beträge, Monospace, tabellarische Ziffern, rechtsbündig.
+- **Bedientext** (500, 0,9375rem, 1,5): Knöpfe und Leerzustände — die Elemente, die man anfasst.
+- **Reitertext** (400/500, 0,875rem, 1,5): Navigation, Textaktionen und Meldungszeilen.
 - **Label** (500, 0,75rem, 0,04em, versal): Feld- und Abschnittsbeschriftungen.
 
 ### Named Rules
@@ -319,6 +328,7 @@ Oberfläche und sie zeigt Arbeitsstand, nicht Dekoration. Bei
 - **Do** führe genau eine Bewegung: die Lauflinie, solange Erfassung fehlt.
 - **Do** bleib bei ≥ 4,5:1 Kontrast auf Papier — für Bernstein die Tinte-Variante `#a34f00`.
 - **Do** respektiere `prefers-reduced-motion` und reduziere auf Statik.
+- **Do** löse Meldungscodes an der UI-Seite auf; die Domäne gibt nie Text aus — Zahlen, Beträge und Daten formatiert nur `format.ts`.
 
 ### Don't:
 - **Don't** erfinde Farben, die keine Fachbedeutung tragen, und setze keine Verläufe.

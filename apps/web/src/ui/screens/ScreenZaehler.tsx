@@ -58,6 +58,13 @@ export function ScreenZaehler() {
 
   const offenesForm = blatt?.art === "form" ? blatt.zaehlerId : undefined;
 
+  // Eine Ansicht traegt genau eine Primaeraktion (DESIGN.md). Traegt das
+  // offene Blatt eine eigene, weicht der Kopfknopf zurueck - das Blatt
+  // uebernimmt den Platz. Das Blatt "enthaelt" hat keine Primaeraktion,
+  // dort bleibt der Kopfknopf stehen.
+  const blattTraegtPrimaer =
+    blatt?.art === "form" || blatt?.art === "wechsel" || blatt?.art === "import";
+
   return (
     <div className="pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
@@ -74,9 +81,11 @@ export function ScreenZaehler() {
             <Textaktion onClick={() => setBlatt({ art: "import" })}>
               {t("meter.startablesungen")}
             </Textaktion>
-            <KnopfPrimär onClick={() => setBlatt({ art: "form", zaehlerId: null })}>
-              {t("meter.neuerZaehler")}
-            </KnopfPrimär>
+            {!blattTraegtPrimaer ? (
+              <KnopfPrimär onClick={() => setBlatt({ art: "form", zaehlerId: null })}>
+                {t("meter.neuerZaehler")}
+              </KnopfPrimär>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -85,20 +94,16 @@ export function ScreenZaehler() {
         <ImportStartablesungen onFertig={() => setBlatt(null)} />
       ) : null}
 
-      {blatt?.art === "form" && offenesForm !== undefined ? (
+      {/* Das Blatt klappt unter der Zeile auf, in der bearbeitet wird - dort
+          steht auch die Primaeraktion. Nur der neue Zaehler hat keine Zeile
+          und bekommt das Blatt deshalb ueber der Liste. */}
+      {blatt?.art === "form" && offenesForm === null ? (
         <div className="mb-3">
-          <ZaehlerForm
-            zaehler={
-              offenesForm === null
-                ? null
-                : (state.zaehler.find((z) => z.id === offenesForm) ?? null)
-            }
-            onFertig={() => setBlatt(null)}
-          />
+          <ZaehlerForm zaehler={null} onFertig={() => setBlatt(null)} />
         </div>
       ) : null}
 
-      {zaehler.length === 0 && blatt?.art !== "form" ? (
+      {zaehler.length === 0 && !blattTraegtPrimaer ? (
         <Leerzustand
           text={t("meter.leer")}
           hinweis={t("meter.leerHinweis")}

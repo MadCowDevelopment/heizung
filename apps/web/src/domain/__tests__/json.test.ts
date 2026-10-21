@@ -46,7 +46,18 @@ describe("JSON – Export/Import des Gesamt-Zustands", () => {
 
   it("lehnt eine neuere schemaVersion ab", () => {
     const json = JSON.stringify({ schemaVersion: SCHEMA_VERSION + 1, bewohner: [] });
-    expect(() => importiereJson(json)).toThrow(/Schema-Version/);
+    let fehler: unknown;
+    try {
+      importiereJson(json);
+    } catch (e) {
+      fehler = e;
+    }
+    expect(fehler).toBeInstanceOf(ImportFehler);
+    expect((fehler as ImportFehler).meldung.code).toBe("json.schemaVersion");
+    expect((fehler as ImportFehler).meldung.params).toMatchObject({
+      datei: SCHEMA_VERSION + 1,
+      appVersion: SCHEMA_VERSION,
+    });
   });
 
   it("füllt fehlende Sektionen mit Defaults", () => {

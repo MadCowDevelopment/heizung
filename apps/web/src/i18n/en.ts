@@ -155,6 +155,58 @@ export const en: { [K in keyof DE]: { [T in keyof DE[K]]: string } } = {
     zeile: "Row",
     grund: "Reason",
   },
+  csv: {
+    spalteZaehlerFehlt: "Column “Meter” is missing.",
+    spalteDatumFehlt: "Column “Date” is missing.",
+    spalteStandFehlt: "Column “Reading” is missing.",
+    unbekannterZaehler: "Unknown meter “{{name}}”.",
+    ungueltigesDatum: "Invalid date “{{wert}}”.",
+    ungueltigerStand: "Invalid reading “{{wert}}”.",
+    ueberschrieben: "Overwritten.",
+  },
+  json: {
+    keinGueltigesJson: "The file is not valid JSON.",
+    keinDatenobjekt: "The file does not contain a valid data object.",
+    schemaVersion:
+      "The file has schema version {{datei}}, this app supports {{appVersion}}. Please update the app.",
+  },
+  plausibilitaet: {
+    unvollstaendig:
+      "For “{{name}}” a start or end reading is missing in the period – not billable.",
+    negativ:
+      "“{{name}}” has a negative consumption ({{wert, number(minimumFractionDigits:2)}}) – check for a meter change or a misreading.",
+    ausreisser:
+      "“{{name}}” is {{wert, number(minimumFractionDigits:2)}} above {{faktor}} times the median ({{median, number(minimumFractionDigits:2)}}) of the previous periods.",
+  },
+  abrechnung: {
+    zaehlerUnvollstaendig:
+      "Meter “{{name}}” is incomplete for the period – it is not billed.",
+    keineVerteilungsbasisEnergie:
+      "The energy distribution has no basis (no water consumption) – please ask the administrator (suggestion: equal distribution).",
+    keineVerteilungsbasisWarm:
+      "The shared hot water meter has no distribution basis – please ask the administrator.",
+    keinEigenerZaehler: "No own water meter – excluded from the distribution.",
+    keineTheoretischenKosten:
+      "No theoretical costs as a distribution basis – the operator amount is distributed evenly.",
+    offeneAbschlaege:
+      "Outstanding prepayments of {{betrag, currency(EUR)}} per year – not offset.",
+  },
+  verteilung: {
+    // The code names the meter that was fallen back to.
+    fallbackWarm:
+      "No meter for the active distribution key – distribution based on hot water.",
+    fallbackKalt:
+      "No meter for the active distribution key – distribution based on cold water.",
+    administratorfrage:
+      "No water consumption as a distribution basis – please ask the administrator (suggestion: equal distribution).",
+  },
+  speicher: {
+    indexeddbOeffnenFehlgeschlagen: "IndexedDB could not be opened.",
+    indexeddbTransaktionFehlgeschlagen: "IndexedDB transaction failed.",
+    indexeddbNichtVerfuegbar: "IndexedDB is not available in this environment.",
+    indexeddbBlockiert: "Another tab is blocking the database.",
+    pfadLeer: "Path must not be empty.",
+  },
   store: {
     ladenFehler: "Data could not be loaded: {{reason}}",
     ladenFehlerOhneGrund: "Data could not be loaded.",

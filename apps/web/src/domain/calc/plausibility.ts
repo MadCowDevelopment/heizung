@@ -8,7 +8,7 @@
  * Override-Möglichkeit), nicht die Erfassung.
  */
 
-import type { Ablesung, ISODate, MeterUnit } from "../types";
+import type { Ablesung, FachMeldung, ISODate, MeterUnit } from "../types";
 import { compareDate } from "./dates";
 import { meterDelta } from "./period";
 import { zuBasis } from "./units";
@@ -19,11 +19,17 @@ export const PLAUSIBILITAET_FAKTOR = 3;
 /** Art der Plausibilitätswarnung. */
 export type PlausibilitaetArt = "negativ" | "ausreisser" | "fehlt" | "unvollstaendig";
 
-/** Eine Plausibilitätswarnung. */
+/**
+ * Eine Plausibilitätswarnung.
+ *
+ * `text` ist **sprachneutral** (Code + Parameter); die Oberfläche löst ihn
+ * über i18n auf. Die Zahlen stehen als Rohwerte in `params`, damit die
+ * Formatierung in der Sprache der Oberfläche erfolgt.
+ */
 export interface PlausibilitaetHinweis {
   zaehlerId: string;
   art: PlausibilitaetArt;
-  text: string;
+  text: FachMeldung;
   /** Wert, der die Warnung ausgelöst hat. */
   wert?: number;
   /** Referenzwert (z. B. Median). */
@@ -105,7 +111,7 @@ export function checkPlausibility(
       hinweise.push({
         zaehlerId: z.id,
         art: "unvollstaendig",
-        text: `Für „${z.bezeichnung}" fehlt eine Start- oder Endablesung im Zeitraum – nicht abrechenbar.`,
+        text: { code: "plausibilitaet.unvollstaendig", params: { name: z.bezeichnung } },
         blockierend: false,
       });
       continue;
@@ -117,7 +123,7 @@ export function checkPlausibility(
       hinweise.push({
         zaehlerId: z.id,
         art: "negativ",
-        text: `„${z.bezeichnung}" hat einen negativen Verbrauch (${delta.toFixed(2)}) – Zählerwechsel oder Fehlablesung prüfen.`,
+        text: { code: "plausibilitaet.negativ", params: { name: z.bezeichnung, wert: delta } },
         wert: delta,
         blockierend: true,
       });
@@ -131,7 +137,10 @@ export function checkPlausibility(
         hinweise.push({
           zaehlerId: z.id,
           art: "ausreisser",
-          text: `„${z.bezeichnung}" liegt mit ${delta.toFixed(2)} über dem ${PLAUSIBILITAET_FAKTOR}-fachen des Medians (${med.toFixed(2)}) der Vorperioden.`,
+          text: {
+            code: "plausibilitaet.ausreisser",
+            params: { name: z.bezeichnung, wert: delta, faktor: PLAUSIBILITAET_FAKTOR, median: med },
+          },
           wert: delta,
           referenz: med,
           blockierend: true,

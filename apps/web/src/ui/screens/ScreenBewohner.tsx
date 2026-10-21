@@ -42,6 +42,12 @@ export function ScreenBewohner() {
     return gefiltert.sort((a, b) => a.name.localeCompare(b.name, "de"));
   }, [state.bewohner, nurAktive]);
 
+  // Eine Ansicht traegt genau eine Primaeraktion (DESIGN.md). Jedes Blatt
+  // hier traegt eine eigene, also weicht der Kopfknopf zurueck, sobald ein
+  // Blatt offen ist. Ohne Bewohner in der Liste traegt der Leerzustand die
+  // eine Aktion.
+  const blattTraegtPrimaer = blatt !== null;
+
   return (
     <div className="pt-4">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
@@ -63,11 +69,13 @@ export function ScreenBewohner() {
             />
             {t("bewohner.inaktivAnzeigen")}
           </label>
-          <KnopfPrimär onClick={() => setBlatt({ art: "neu" })}>{t("bewohner.neu")}</KnopfPrimär>
+          {bewohner.length > 0 && !blattTraegtPrimaer ? (
+            <KnopfPrimär onClick={() => setBlatt({ art: "neu" })}>{t("bewohner.neu")}</KnopfPrimär>
+          ) : null}
         </div>
       </div>
 
-      {bewohner.length === 0 ? (
+      {bewohner.length === 0 && !blattTraegtPrimaer ? (
         <Leerzustand
           text={t("bewohner.leer")}
           hinweis={t("bewohner.leerHinweis")}

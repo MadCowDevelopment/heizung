@@ -94,7 +94,10 @@ describe("Abrechnung – Referenzszenario (Ende zu Ende)", () => {
     const s = buildSettlement(referenz(zahlung), { ...PERIODE, betreiberBetrag: 300 });
     expect(posB(s)?.summeAbschlaege).toBeCloseTo(0, 6);
     expect(posB(s)?.saldo).toBeCloseTo(100, 6);
-    expect(posB(s)?.hinweise.join(" ")).toMatch(/Offene Abschläge über 50,00/);
+    expect(posB(s)?.hinweise.map((h) => h.code)).toContain("abrechnung.offeneAbschlaege");
+    expect(posB(s)?.hinweise.find((h) => h.code === "abrechnung.offeneAbschlaege")?.params).toMatchObject({
+      betrag: 50,
+    });
   });
 
   it("rechnet Zahlungen dem Jahr von `bezahltAm` zu (R6)", () => {
@@ -135,7 +138,7 @@ describe("Abrechnung – Referenzszenario (Ende zu Ende)", () => {
     );
     const e = buildSettlement(s, PERIODE);
     expect(e.unvollstaendig).toBe(true);
-    expect(e.globaleHinweise.join(" ")).toMatch(/unvollständig/);
+    expect(e.globaleHinweise.map((h) => h.code)).toContain("abrechnung.zaehlerUnvollstaendig");
   });
 
   it("ist ohne blockierende Plausibilitätswarnung abschließbar", () => {

@@ -16,7 +16,7 @@
  *    gleichmäßige Aufteilung (mit sichtbarem Hinweis).
  */
 
-import type { Bewohner, VerteilSchluessel, Zaehler } from "../types";
+import type { Bewohner, FachMeldung, VerteilSchluessel, Zaehler } from "../types";
 import { roundTo } from "./units";
 
 /** Wasserverbrauch eines Bewohners in Litern. */
@@ -40,8 +40,8 @@ export interface VerteilungsErgebnis {
   anteile: Map<string, number>;
   /** Anteil in Prozent (Summe = 100, auf 2 Nachkommastellen). */
   prozente: Map<string, number>;
-  /** Je Bewohner sichtbare Hinweise. */
-  hinweise: Map<string, string[]>;
+  /** Je Bewohner sichtbare Hinweise (sprachneutrale Codes + Parameter). */
+  hinweise: Map<string, FachMeldung[]>;
   /** Summe der Verteilungsbasis (Liter). */
   summeSchluessel: number;
   /** `true`, wenn statt des Verteilungs-Schlüssels gleichmäßig verteilt wurde. */
@@ -134,7 +134,7 @@ export function distributeEnergy(
 ): VerteilungsErgebnis {
   const anteile = new Map<string, number>();
   const prozente = new Map<string, number>();
-  const hinweise = new Map<string, string[]>();
+  const hinweise = new Map<string, FachMeldung[]>();
   const aktive = verbrauch.filter((v) => v.bewohnerId);
 
   for (const v of aktive) {
@@ -146,12 +146,10 @@ export function distributeEnergy(
   const werte = aktive.map((v) => {
     const { wert, fallback } = schluesselWert(v, verteilSchluessel);
     if (fallback) {
-      const alternativ = verteilSchluessel === "warm" ? "Kaltwasser" : "Warmwasser";
-      hinweise
-        .get(v.bewohnerId)
-        ?.push(
-          `Kein Zähler des aktiven Verteilungs-Schlüssels – Verteilung nach ${alternativ}.`,
-        );
+      // Der Rückfall-Zähler hängt vom aktiven Verteilungs-Schlüssel ab.
+      const code =
+        verteilSchluessel === "warm" ? "verteilung.fallbackKalt" : "verteilung.fallbackWarm";
+      hinweise.get(v.bewohnerId)?.push({ code });
     }
     return { bewohnerId: v.bewohnerId, wert, fallback };
   });
@@ -166,9 +164,7 @@ export function distributeEnergy(
       prozente.set(w.bewohnerId, n > 0 ? roundTo(100 / n, 2) : 0);
       hinweise
         .get(w.bewohnerId)
-        ?.push(
-          "Kein Wasserverbrauch als Verteilungsbasis – bitte Administrator fragen (Vorschlag: gleiche Verteilung).",
-        );
+        ?.push({ code: "verteilung.administratorfrage" });
     }
     return {
       anteile,

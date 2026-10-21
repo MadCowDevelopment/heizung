@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T17:14:38.065Z",
+  "generatedAt": "2026-10-21T20:04:08.096Z",
   "title": "Design System: Werkbank Heizungsabrechnung",
   "extensions": {
     "colorMeta": {
@@ -302,10 +302,6 @@
       {
         "name": "sm",
         "value": "640px"
-      },
-      {
-        "name": "head",
-        "value": "896px"
       }
     ]
   },
@@ -439,7 +435,8 @@
       "Do benutze genau eine Primäraktion pro Ansicht.",
       "Do führe genau eine Bewegung: die Lauflinie, solange Erfassung fehlt.",
       "Do bleib bei ≥ 4,5:1 Kontrast auf Papier — für Bernstein die Tinte-Variante #a34f00.",
-      "Do respektiere prefers-reduced-motion und reduziere auf Statik."
+      "Do respektiere prefers-reduced-motion und reduziere auf Statik.",
+      "Do löse Meldungscodes an der UI-Seite auf; die Domäne gibt nie Text aus — Zahlen, Beträge und Daten formatiert nur format.ts."
     ],
     "donts": [
       "Don't erfinde Farben, die keine Fachbedeutung tragen, und setze keine Verläufe.",
