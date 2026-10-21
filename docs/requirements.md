@@ -2,8 +2,8 @@
 
 > **Status:** Spezifikation. Offene Entscheidungen in §8.
 > **Datenschutz-Hinweis:** Dieses Repo ist **öffentlich**. Es enthält ausschließlich Code.
-> Bewohnernamen, E-Mail-Adressen und Zählerstände liegen **ausschließlich** im Cloud-Backend
-> (privates Konto/Projekt), niemals im Repo, niemals im Frontend-Bundle.
+> Bewohnernamen, E-Mail-Adressen und Zählerstände liegen **ausschließlich** im privaten
+> Daten-Repo (GitHub, privat) bzw. lokal im Gerät – niemals in diesem Repo, niemals im Frontend-Bundle.
 
 ## 1. Zweck & Scope
 
@@ -16,7 +16,7 @@ Web-App (mobil-first) für eine Wohngemeinschaft / Haus mit gemischter Zählerst
 5. **Jahresabrechnung:** Betreiberrechnung (Ist-Betrag) auf Bewohner nach Verbrauchsanteil verteilen, Abschläge verrechnen → Nachzahlung/Auszahlung.
 6. **Ausgabe:** Die Abrechnung wird als **PDF** erzeugt (je Bewohner einzeln + gesammelt) und vom Admin verteilt; nur der Admin arbeitet in der App.
 
-**In Scope:** Warmwasser-/Energieverteilung, Wasser als Verteilungsbasis (warm/kalt getrennt), Abschläge, Jahresabrechnung, PDF-Ausgabe, Export/Import, Offline-Fähigkeit.
+**In Scope:** Warmwasser-/Energieverteilung, Wasser als Verteilungsbasis (warm/kalt getrennt), Abschläge, Jahresabrechnung, PDF-Ausgabe, Cloud-Save, Export/Import, Offline-Fähigkeit.
 
 **Später ergänzbar (bewusst offen gelassen):** Wasserpreis pro m³ (Preisfeld existiert, Default 0 €), weitere Preisbestandteile, Bewohner-Self-Service-Portal, Mahnwesen, Heizkostenabrechnung nach §556 BGB.
 
@@ -34,7 +34,7 @@ Web-App (mobil-first) für eine Wohngemeinschaft / Haus mit gemischter Zählerst
 | **Preis** | `id`, `gueltigAb` (ISO-Datum), `preisMWh`, `preisM3` (Default 0), `notiz` |
 | **AbschlagPlan** | `id`, `bewohnerId`, `betrag`, `rhythmus` (`monatlich` \| `jaehrlich`), `aktiv` |
 | **Zahlung** | `id`, `bewohnerId`, `betrag`, `faelligAm`, `bezahltAm` (optional), `notiz` (z. B. „Abschlag 03/2026") |
-| **Abrechnung** | `id`, `jahr`, `zeitraum` (von/bis), `betreiberBetrag`, `betreiberHinweis`, `status` (`entwurf` \| `versendet` \| `beglichen`), `positionen[]` |
+| **Abrechnung** | `id`, `jahr`, `zeitraum` (von/bis), `betreiberBetrag`, `betreiberHinweis`, `status` (`entwurf` \| `verteilt` \| `beglichen`), `positionen[]` |
 | **Einstellungen** | `preisDefaults` (siehe Preis), `verteilSchluessel`, `waehrung`, `objektName`, `ansprechpartner`, `pdfHinweis`, `schemaVersion` |
 
 ### 2.2 Zählertypen & Farbkodierung
@@ -165,19 +165,19 @@ Beim Einrichten der App können **Startablesungen** (Zähler + Datum + Startstan
 - **Operationen:** Betreiberbetrag + Hinweis erfassen, Verteilung neu berechnen, Entwurf speichern, **PDF je Bewohner erzeugen** (Vorschau im Viewer, dann Speichern/Teilen), **Sammel-PDF** aller Bewohner, CSV-Export, Positionen einfrieren („Abrechnung abschließen"), Statuspflege (offen / verteilt / bezahlt).
 
 ### S8 – Einstellungen
-- **Operationen:** **Preise** (Preis-Historie: „gültig ab", MWh-Preis, optionaler m³-Preis), **Verteilungs-Schlüssel** (warm / warm+kalt / kalt), Standard-Preis MWh, Währung, **Admin-Login** (E-Mail + Passwort ändern, 2FA optional), **PDF** (Objektbezeichnung, Ansprechpartner, Hinweistext, Logo/Briefkopf optional), Export/Import (JSON mit `schemaVersion`, CSV), Komplettlöschung, Impressum/Datenschutz.
+- **Operationen:** **Preise** (Preis-Historie: „gültig ab", MWh-Preis, optionaler m³-Preis), **Verteilungs-Schlüssel** (warm / warm+kalt / kalt), Standard-Preis MWh, Währung, **Konto & Cloud** (GitHub-Verbindung: anmelden/abmelden, Daten-Repo `owner/repo` wählen, Sync-Intervall, „jetzt synchronisieren", Sync-Log), **PDF** (Objektbezeichnung, Ansprechpartner, Hinweistext, Logo/Briefkopf optional), Export/Import (JSON mit `schemaVersion`, CSV), Komplettlöschung, Impressum/Datenschutz.
 
 ### S9 – Status/Fehler (global)
-Sync-Fehler-Banner, Offline-Hinweis, Validierungs- und Plausibilitäts-Markierungen, Wiederherstellen nach Fehlern.
+Sync-Fehler-Banner, Offline-Hinweis, Validierungs- und Plausibilitäts-Markierungen, Wiederherstellen nach Fehlern, GitHub-Verbindungsstatus (angemeldet / Token abgelaufen / kein Zugriff aufs Daten-Repo).
 
 ---
 
 ## 5. Nicht-funktionale Anforderungen
 
 - **Mobil-first**, PWA-installierbar, offline-fähige Eingabe (lokale Queue) mit Nachsenden.
-- **Statisches Frontend auf GitHub Pages**; Datenspeicherung über ein separates Backend (siehe Architektur).
-- **Admin-only-Zugriff:** E-Mail+Passwort-Login; Bewohner haben **keinen** Login, sie erhalten die PDF. Geschützte Seiten/Routen; Server erzwingt die Rechte (nicht nur UI).
-- **Personenbezogene Daten** nur im Backend (privates Konto/Projekt, EU-Region), Verschlüsselung in transit/at rest, Export & vollständige Löschung, Backups.
+- **Statisches Frontend auf GitHub Pages**, **kein eigenes Backend** – Datenhaltung über privates GitHub-Repo (siehe Architektur).
+- **Admin-only-Zugriff:** Anmeldung mit **GitHub-Login** (OAuth Device-Flow). Bewohner haben **keinen** Login, sie erhalten die PDF.
+- **Personenbezogene Daten** (Namen, Stände) liegen ausschließlich im **privaten** Daten-Repo; Zugriff nur über den GitHub-Token des Admins. Export & vollständige Löschung, Historie/Restore über Git-Commits.
 - **PDF-Erzeugung clientseitig** → keine PDF-/Mail-Dienste, keine zusätzlichen Geheimnisse, Daten verlassen das Gerät nicht.
 - **Sprache:** UI Deutsch (i18n EN vorbereitet), `de-DE`-Format für Datum/Zahl/Währung.
 - **Performance:** < 2 s Ladezeit im Mobilnetz, Bedienung offline nach Erstladen.
@@ -202,23 +202,23 @@ Detail: [architecture.md](./architecture.md)
 | PDF/CSV | **clientseitig** (pdf-lib für PDF, CSV-Export) | PDF enthält personenbezogene Daten → bleibt auf dem Admin-Gerät, kein Versanddienst nötig |
 | i18n | `react-i18next` | de/en |
 | Tests | Vitest (Rechenlogik) + Playwright (Erfassungs- & Login-Flow) | R1–R11 sind das Kernrisiko |
-| Backend | **Cloudflare Workers + D1** (empfohlen) – Alternativ Supabase | Datenspeicherung, Admin-Auth, Cloud-Save in einer Deployment-Einheit |
+| Backend | **keins** – GitHub API als Datenspeicher | GitHub-Login + privates Daten-Repo: Cloud-Save ohne eigenes Backend |
 
 ### 6.2 Cloud-Speicher – Optionen
 
-Ohne E-Mail-Versand braucht es nur Datenspeicherung + Admin-Auth. Das Backend kann deutlich schlanker ausfallen.
+Ohne E-Mail-Versand und ohne eigenes Backend reicht die **GitHub API** als Datenspeicher.
 
 | Option | Datenspeicher | Admin-Login | Aufwand | Passt, wenn… |
 |---|---|---|---|---|
-| **Cloudflare Workers + D1** (empfohlen) | eigenes SQLite (D1) | selbst implementiert (Passwort-Hash + Session-Token) | mittel (ein TS-Projekt) | volle Kontrolle, ein Deploy, kostenlos |
+| **GitHub API + privates Daten-Repo** (empfohlen) | privates Repo (`data/state.json`) | ✅ **GitHub-Login** (OAuth Device-Flow) | sehr gering (kein Server!) | Cloud-Save ohne Zusatzkonto; Commits = Historie/Rollback |
+| **Cloudflare Workers + D1** | eigenes SQLite (D1) | selbst implementiert (Passwort-Hash + Session) | mittel | echtes Mehrbenutzer-Rechtemodell, Realtime, Secrets serverseitig |
 | **Supabase** (Postgres + Auth) | eigener Postgres | ✅ eingebaut | mittel (SQL + RLS + CLI) | SQL/RLS-Fortgeschrittenheit vorhanden, Realtime gewünscht |
 | **Firebase** (Firestore) | Firestore | Google-Login | mittel | Firebase-Ökosystem gewünscht |
 | **Nur Browser** (IndexedDB) + Export/Import | Gerät | PIN | keiner | Single-Device-Betrieb ohne Cloud-Save |
-| **GitHub-API** (privates Repo) | privates Repo | Token am Gerät (≈ kein Login) | sehr gering | Prototyp mit Cloud-Save ohne Zusatzkonto |
 
 **Empfehlung**
-1. **Cloudflare Workers + D1** als Backend: Datenspeicherung, Admin-Auth, Cloud-Save – ein `wrangler deploy`, Secrets nur als Worker-Secrets, alles im kostenlosen Bereich.
-2. **Alternative Supabase**, wenn eingebautes Auth und SQL/RLS bevorzugt werden.
+1. **GitHub API + privates Daten-Repo** mit GitHub-Login (Device-Flow): kein Backend, kein Deployment außer GitHub Pages, Cloud-Save inkl. Historie über Git-Commits. Der Zugriff auf das Daten-Repo wird über den GitHub-Token des Admins geregelt; der Token wird nie im Code-Repo abgelegt.
+2. **Alternative Cloudflare Workers + D1**, falls später echtes Mehrbenutzer-Rechtemodell, Realtime oder serverseitige Secrets nötig werden.
 3. Im Frontend **`StorageAdapter`**-Abstraktion (`list/read/write/delete`), damit der Provider austauschbar bleibt (späterer Wechsel = Konfiguration).
 4. **Immer** lokaler Cache (IndexedDB) + Export/Import (JSON, `schemaVersion`) → App funktioniert offline, Datenverlust ist abgesichert.
 
@@ -231,39 +231,48 @@ flowchart LR
   CALC --> QU[TanStack Query Cache]
   QU --> SYNC[Sync-Engine\nQueue + LWW + Retry]
   SYNC --> IDB[(IndexedDB Cache)]
-  SYNC --> API[Backend API\n(Worker / Supabase)]
-  API --> DB[(D1 / Postgres)]
+  SYNC --> API[GitHub REST API\n(privates Daten-Repo)]
   CALC --> PDF[PDF-Erzeugung\nim Browser]
 ```
 
 - **Berechnung als reine Funktionen** (`computePeriod(period, meters, readings, prices)`), testbar, ohne Store/Netz.
-- **Sync-Engine:** lokale Mutation sofort in IndexedDB → Queue → Batch-Upsert mit `updatedAt`; Konflikt Last-Write-Wins je Datensatz; Retry mit Backoff; Status sichtbar.
-- **Auth:** Session-Token im Frontend + serverseitige Prüfung jeder Anfrage; kein Geheimnis im Bundle.
+- **Sync-Engine:** lokale Mutation sofort in IndexedDB → Queue → ein Schreib-Request je Sync-Zyklus (SHA-Optimistic-Locking, bei 409 Merge + Retry).
+- **Auth:** GitHub-OAuth-Token (Device-Flow) im Browser; jeder Request mit `Authorization: token`; 401/403 → Re-Login.
 - **PDF:** entsteht vollständig im Browser aus den eingefrorenen Abrechnungspositionen.
 
 ### 6.4 Umsetzungsschritte
 
 1. **M0 Statischer Prototyp:** Domänenmodell + Rechenkern (R1–R11) + Unit-Tests; S2/S3/S4 mit lokalem Adapter; Startablesungen-Import.
-2. **M1 Backend:** Worker + D1 + Auth + API + Sync-Engine + StorageAdapter; S5/S6.
+2. **M1 Cloud:** GitHub-Login (Device-Flow), `StorageAdapter` für die GitHub-API, Sync-Engine mit SHA-Merge, S5/S6.
 3. **M2 Abrechnung:** S7 (Betreiberbetrag, Verteilung, Abschläge, Einzel-/Sammel-PDF, CSV), Export/Import.
-4. **M3 Politur:** Kamera/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n, GitHub Actions → Pages + Worker-Deploy.
+4. **M3 Politur:** Kamera/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n, GitHub Actions → Pages.
 
 ---
 
 ## 7. Datenmodell (Kurzform)
 
-```
-bewohner(id, name, email, notiz, aktiv, farbe, updatedAt)
-zaehler(id, bezeichnung, typ, einheit, bewohnerId?, enthaeltIds: json, ablesestelle, aktiv, startStand?, updatedAt)
-ablesung(id, zaehlerId, datum, stand, notiz, unsicher, foto?, preisMwhGenutzt, updatedAt)  # unique(zaehlerId, datum)
-preis(id, gueltigAb, preisMWh, preisM3, notiz, updatedAt)
-abschlag_plan(id, bewohnerId, betrag, rhythmus, aktiv, updatedAt)
-zahlung(id, bewohnerId, betrag, faelligAm, bezahltAm?, notiz, updatedAt)
-abrechnung(id, jahr, von, bis, betreiberBetrag, betreiberHinweis, status, positionen: json, updatedAt)
-einstellungen(id=singleton, verteilSchluessel, waehrung, objektName, ansprechpartner, pdfHinweis, updatedAt)
+Ablage als **eine JSON-Datei** in einem privaten GitHub-Repo (`data/state.json`), Commit je Änderung.
+
+```jsonc
+{
+  "schemaVersion": 3,
+  "updatedAt": "…",
+  "bewohner":   [ { "id", "name", "email", "notiz", "aktiv", "farbe", "updatedAt", "deleted" } ],
+  "zaehler":    [ { "id", "bezeichnung", "typ", "einheit", "bewohnerId", "enthaeltIds": [],
+                    "ablesestelle", "aktiv", "startStand", "updatedAt", "deleted" } ],
+  "ablesung":  [ { "id", "zaehlerId", "datum", "stand", "notiz", "unsicher", "fotoKey",
+                    "preisMwhGenutzt", "createdAt", "updatedAt", "deleted" } ],
+  "preis":      [ { "id", "gueltigAb", "preisMWh", "preisM3", "notiz" } ],
+  "abschlagPlan":[ { "id", "bewohnerId", "betrag", "rhythmus", "aktiv" } ],
+  "zahlung":    [ { "id", "bewohnerId", "betrag", "faelligAm", "bezahltAm", "notiz" } ],
+  "abrechnung": [ { "id", "jahr", "von", "bis", "betreiberBetrag", "betreiberHinweis",
+                    "status", "positionen": [], "updatedAt" } ],
+  "einstellungen": { "verteilSchluessel", "waehrung", "objektName", "ansprechpartner",
+                     "pdfHinweis", "datenRepo" }
+}
 ```
 
-Alle Tabellen: `id`, `updatedAt`, `deleted` (Soft-Delete), `schemaVersion`.
+`ablesung` ist pro `(zaehlerId, datum)` eindeutig. `abrechnung.positionen` enthält eingefrorene Positionen. Fotos/Belege bleiben lokal im Gerät (IndexedDB), nicht im Daten-Repo.
 
 ---
 
@@ -281,5 +290,6 @@ Alle Tabellen: `id`, `updatedAt`, `deleted` (Soft-Delete), `schemaVersion`.
 | 8 | Währung EUR; CHF später | EUR |
 | 9 | Preiskonvention: pro Kalenderjahr oder Preisstufen mit Datum? | beides, Snapshot pro Ablesung |
 | 10 | Startablesungen: als Import-Datei (CSV) oder manuell in der UI? | beide (CSV-Paste + manuell) |
-| 11 | Passwortschutz der App: nur Passwort oder 2FA? | Passwort reicht, 2FA optional |
-| 12 | Cloud-Backend nötig (Cloud-Save von mehreren Geräten) oder reicht ein Gerät + Export/Import? | Backend empfohlen, aber Single-Device wäre deutlich einfacher |
+| 11 | Zugriffsschutz der App | **GitHub-Login** (OAuth Device-Flow) – kein eigenes Passwort, 2FA des GitHub-Kontos wirkt automatisch |
+| 12 | Cloud-Save von mehreren Geräten nötig oder reicht ein Gerät + Export/Import? | **Cloud-Save via privates GitHub-Daten-Repo** (empfohlen) – zusätzlich lokale Kopie + Export/Import |
+| 13 | Daten-Repo: eigenes privates Repo (z. B. `MadCowDevelopment/heizung-data`) oder im Code-Repo (nicht möglich, öffentlich)? | eigenes privates Daten-Repo |

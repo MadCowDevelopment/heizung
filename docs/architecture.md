@@ -1,14 +1,16 @@
 # Architektur – Heizungs-/Warmwasser-Abrechnung
 
-> **Wichtig:** Dieses Repo ist öffentlich → enthält nur Code. Keine Bewohnerdaten, keine Secrets,
-> keine echten Zählerstände im Repo. Geheimnisse liegen als Deployment-Secrets (z. B. `wrangler secret put`).
+> **Wichtig:** Dieses Repo ist öffentlich → enthält nur Code. Keine Bewohnernamen, keine Zählerstände,
+> keine Tokens im Repo. Die Daten liegen in einem **privaten** Daten-Repo, die PDF entsteht im Browser.
 
 ## 1. Überblick
 
-Zwei Deployments:
+**Ein** Deployment: statisches Frontend auf GitHub Pages. Kein Backend, kein Worker, keine DB-Dienste.
 
-1. **Frontend** – statisch auf GitHub Pages (Vite/React/TS, PWA).
-2. **Backend** – Cloudflare Worker (+ D1) für Datenspeicherung, Admin-Auth und Cloud-Save.
+- **Datenhaltung:** privates GitHub-Repo als JSON-Ablage (`data/state.json`) über die GitHub REST API.
+- **Zugriff:** **GitHub-Login (OAuth Device-Flow)** – der Admin meldet sich mit GitHub an, ein OAuth-Token (Browser-Session) erlaubt Lesen/Schreiben im Daten-Repo. Kein eigenes Passwort, keine 2FA-Pflicht, Tokens nie im Repo.
+- **PDF:** clientseitig (pdf-lib) im Browser.
+- **Offline:** IndexedDB-Cache + Queue; Sync beim Start / bei Netzänderung.
 
 ```
 ┌──────────── Browser / PWA (GitHub Pages) ────────────┐
@@ -18,89 +20,138 @@ Zwei Deployments:
 │   ↓                                                 │
 │ domain/ (pure calc: R0–R11)                         │
 │   ↓                                                 │
+│ pdf/ (pdf-lib)                                      │
+│   ↓                                                 │
 │ sync/ (Queue, LWW, Retry)  →  idb/ (IndexedDB)      │
 │   ↓                                                 │
-│ api/ (Fetch-Client + Session-Token)                 │
-│   ↓                                                 │
-│ pdf/ (pdf-lib, clientseitig)                        │
+│ storage/github.ts  →  GitHub REST API                │
 └──────────────────────┬───────────────────────────────┘
-                       │ HTTPS + Bearer-Token
+                       │ HTTPS + OAuth-Token
 ┌──────────────────────▼───────────────────────────────┐
-│ Cloudflare Worker (TypeScript)                      │
-│  ├─ Auth (Admin-Login, Passwort-Hash, Sessions)      │
-│  ├─ REST-API (CRUD je Entität, Batch-Upsert)         │
-│  └─ D1 (SQLite) – alle Tabellen, schemaVersion      │
+│ Privates GitHub-Repo (Daten)                         │
+│  data/state.json   (aktueller Stand)                │
+│  data/history/*.json (Snapshot je Änderung)         │
 └──────────────────────────────────────────────────────┘
 ```
 
-**Kein Mail-Server, kein PDF-Server:** Die PDF entsteht im Browser, die Verteilung erfolgt manuell (Admin hängt das PDF an bzw. druckt es). Damit bleiben Geheimnisse serverseitig und die Anlage deutlich schlanker.
+**Kein Mail-Server, kein PDF-Server, kein Backend:** Die PDF entsteht im Browser, die Verteilung erfolgt manuell
+(Admin hängt das PDF an bzw. druckt es). Damit bleibt die ganze Anlage ein statisches Deployment.
 
-## 2. Projektstruktur
+## 2. Datenzugriff: GitHub-Login + privates Daten-Repo
+
+### 2.1 Anmeldung (OAuth Device-Flow)
+
+- GitHub unterstützt den **Device Authorization Grant** (`/login/device/code`) – ideal für Browser-Apps, die kein Redirect-Secret besitzen:
+  1. App fragt `POST https://github.com/login/device/code` (Client-ID) an → erhält `device_code` + `user_code` + `verification_uri`.
+  2. App zeigt „Code `XXXX-XXXX` auf github.com/login/device eingeben" + QR-Link.
+  3. Nutzer loggt sich bei GitHub ein, bestätigt die App, autorisiert die Scopes.
+  4. App pollt `POST https://github.com/login/oauth/access_token` → erhält `access_token` (+ `refresh_token`, falls verfügbar) → legt es im `localStorage` ab (Browser-Session, 30 Tage).
+- **Scopes:** `repo` (nötig für private Repos) bzw. möglichst eng `contents:read` + `contents:write` **auf genau das Daten-Repo** – dafür ist ein **Fine-grained PAT** nötig. Device-Flow mit OAuth-App unterstützt nur klassische, repo-weite Tokens → **wichtig**: Daten-Repo möglichst in einer eigenen Organisation/mit separaten Credentials halten, oder stattdessen einen Fine-grained PAT verwenden.
+- **Empfehlung:** klassischer Device-Flow (einfach, echter GitHub-Login) + Daten-Repo in einem **eigenen privaten Repo**; Zugriffsrechte bewusst eng halten (Daten-Repo enthält keine anderen Daten als Zählerstände).
+
+### 2.2 Datenzugriff
+
+- Lesen: `GET /repos/{owner}/{repo}/contents/data/state.json` → Base64 dekodieren → JSON parsen.
+- Schreiben: `PUT /repos/{owner}/{repo}/contents/data/state.json` mit `sha` des aktuellen Blobs (optimistische Nebenläufigkeitskontrolle) und Message `"sync 2026-10-21 12:03"`.
+- **Commits = Audit-Trail:** Jeder Sync erzeugt einen Commit mit Zeitstempel → Historie, Diff und Rollback sind gratis. Zusätzlich `data/history/<ISO-Zeitstempel>.json` als Vollständigkeits-Backup.
+- **Konflikte:** `sha` stimmt nicht mehr → `409` → App fragt den Serverstand ab, merged (Last-Write-Wins je Datensatz nach `updatedAt`) und schreibt erneut. Kein stiller Datenverlust.
+- **Rate-Limit:** 5.000 Requests/h pro Token → mit Batching (ein Request pro Sync-Zyklus) völlig unkritisch.
+- **Eigener API-Client:** `storage/github.ts` implementiert `StorageAdapter` (`list/read/write/delete`).
+
+### 2.3 Sicherheit
+
+| Thema | Maßnahme |
+|---|---|
+| Token im Browser | inevitable bei reinem Frontend → daher: **Daten-Repo enthält ausschließlich Zählerstände/Bewohnernamen**, alles andere (Code, Secrets) bleibt getrennt. Bei Personenbezug: Token mit Ablauf, Logout löscht Token, Gerät absichern. |
+| XSS → Token-Diebstahl | keine Fremd-Skripte/CDN-Skripte, keine Analytics, restriktive CSP, keine `dangerouslySetInnerHTML` |
+| Repo-Sichtbarkeit | Daten-Repo **privat**; im Code-Repo liegt nur Code |
+| Verschlüsselung | HTTPS/TLS (GitHub) + GitHub-At-Rest-Verschlüsselung; optional zusätzlich Ende-zu-Ende-Verschlüsselung der JSON (WebCrypto, Passphrase) → Aufwand steigt, deshalb optional |
+| 2FA | GitHub-2FA gilt automatisch mit; Token selbst ist ein Bearer, den man im GitHub-UI widerrufen kann |
+| Löschung | Daten-Repo löschen = alle Daten weg; zusätzlich Export/Import im App |
+
+### 2.4 Alternativen (kurz)
+
+| Option | Wann sinnvoll |
+|---|---|
+| **Cloudflare Workers + D1** | wenn echtes Mehrbenutzer-Rechtemodell, Realtime oder viele Geräte nötig werden; Secrets serverseitig, Token nur im Worker |
+| **Supabase** | wenn SQL/RLS-Fortgeschrittenheit vorhanden ist; eingebautes Auth |
+| **Nur Browser (IndexedDB)** | wenn nur 1 Gerät genutzt wird; zusätzlich Export/Import als Backup |
+
+Der `StorageAdapter` hält den Wechsel offen: `storage/github.ts` → später `storage/api.ts` (Worker) ohne Änderung an UI/Domain.
+
+## 3. Projektstruktur
 
 ```
-apps/                     # Monorepo-lite (npm workspaces)
-  web/                    # Frontend → GitHub Pages
-    src/
-      domain/             # reine Logik, keine UI-/Netzabhängigkeit
-        types.ts
-        calc/
-          period.ts       # R1  Periodenverbrauch je Zähler
-          contains.ts     # R2  enthaltene Zähler auflösen (zyklensicher)
-          distribute.ts   # R3  Energieverteilung nach Wasseranteil
-          costs.ts        # R4  Kosten + Preis-Historie (R9)
-          settlement.ts   # R5/R6/R7  Verteilung, Abschläge, Rundung
-          plausibility.ts # R8  Warnungen
-      storage/
-        adapter.ts        # interface StorageAdapter
-        api.ts            # Implementierung gegen das Backend
-        indexeddb.ts      # lokaler Cache + Offline-Queue
-      sync/               # Queue, Last-Write-Wins, Retry/Backoff, Status
-      ui/screens/         # S1..S9
-      ui/components/      # ZählerKarte, Eingabefeld, VerteilungsTabelle, …
-      theme/              # Farbtokens: warm=rot, kalt=blau, energie=bernstein
-      i18n/               # de, en
-  api/                    # Worker → Cloudflare Workers
-    src/
-      index.ts            # Router (Hono oder plain fetch)
-      routes/             # auth, meters, readings, residents, settlement
-      db/                 # D1-Schema + Migrationen
+apps/web/                    # Frontend → GitHub Pages
+  src/
+    domain/                  # reine Logik, keine UI-/Netzabhängigkeit
+      types.ts
+      calc/
+        period.ts            # R1  Periodenverbrauch je Zähler
+        contains.ts          # R2  enthaltene Zähler auflösen (zyklensicher)
+        distribute.ts        # R3  Energieverteilung nach Wasseranteil
+        costs.ts             # R4  Kosten + Preis-Historie (R9)
+        settlement.ts        # R5/R6/R7  Verteilung, Abschläge, Rundung
+        plausibility.ts      # R8  Warnungen
+    storage/
+      adapter.ts             # interface StorageAdapter
+      github.ts              # GitHub-REST-Implementierung (+ OAuth Device-Flow)
+      indexeddb.ts           # lokaler Cache + Offline-Queue
+    sync/                    # Queue, Last-Write-Wins, Retry/Backoff, Status
+    auth/                    # Device-Flow, Token-Store, Session-Status
+    pdf/                     # pdf-lib Layout, Einzel- + Sammel-PDF
+    ui/screens/              # S1..S9
+    ui/components/           # ZählerKarte, Eingabefeld, VerteilungsTabelle, …
+    theme/                   # Farbtokens: warm=rot, kalt=blau, energie=bernstein
+    i18n/                    # de, en
 ```
 
-**Abhängigkeitsregeln:** `domain` importiert nichts außer `domain`. `pdf` importiert nur `domain`-Typen. `api` kennt kein Frontend. UI greift über TanStack Query/Hooks auf `api` zu. Rechenlogik ist damit isoliert testbar (Vitest ohne Worker-Setup).
+**Abhängigkeitsregeln:** `domain` importiert nichts außer `domain`. `pdf` importiert nur `domain`-Typen. `auth`/`storage` kennen kein UI. UI greift über TanStack Query/Hooks auf `sync` zu. Rechenlogik ist isoliert testbar (Vitest, ohne Netz).
 
-## 3. Datenmodell (D1 / Postgres)
+## 4. Datenmodell (JSON-Ablage)
 
-Alle Tabellen: `id TEXT PRIMARY KEY`, `updated_at TEXT`, `deleted INTEGER DEFAULT 0`, `schema_version INTEGER`.
+`data/state.json`:
 
-```sql
-bewohner(id, name, email, notiz, aktiv INT, email_versand_aktiv INT, farbe, updated_at, deleted)
-zaehler(id, bezeichnung, typ TEXT CHECK(typ IN ('energie','wasser_warm','wasser_kalt')),
-        einheit TEXT, bewohner_id TEXT NULL, enthaelt_ids TEXT /*JSON*/, ablesestelle,
-        aktiv INT, start_stand REAL NULL, updated_at, deleted)
-ablesung(id, zaehler_id TEXT, datum TEXT, stand REAL, notiz, unsicher INT,
-         foto_key TEXT NULL, preis_mwh_genutzt REAL, created_at, updated_at, deleted)
-  -- UNIQUE(zaehler_id, datum)
-preis(id, gueltig_ab TEXT, preis_mwh REAL, preis_m3 REAL DEFAULT 0, notiz, updated_at, deleted)
-abschlag_plan(id, bewohner_id, betrag REAL, rhythmus TEXT CHECK(rhythmus IN ('monatlich','jaehrlich')),
-               aktiv INT, updated_at, deleted)
-zahlung(id, bewohner_id, betrag REAL, faellig_am TEXT, bezahlt_am TEXT NULL, notiz, updated_at, deleted)
-abrechnung(id, jahr INT, von TEXT, bis TEXT, betreiber_betrag REAL, betreiber_hinweis,
-           status TEXT, positionen TEXT /*JSON*/, updated_at, deleted)
-einstellungen(id='singleton', verteil_schluessel TEXT, waehrung TEXT, objekt_name TEXT,
-              ansprechpartner TEXT, pdf_hinweis TEXT, updated_at)
-admin_user(id, email, passwort_hash, passwort_salt, mfa_secret NULL, created_at, updated_at)
-session(id, admin_id, token_hash, expires_at, created_at)
+```jsonc
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-10-21T10:03:00Z",
+  "bewohner": [
+    { "id": "b1", "name": "…", "email": "…", "notiz": "", "aktiv": true, "farbe": "#c62828",
+      "updatedAt": "…", "deleted": false }
+  ],
+  "zaehler": [
+    { "id": "z1", "bezeichnung": "…", "typ": "energie|wasser_warm|wasser_kalt",
+      "einheit": "MWh|m3", "bewohnerId": null, "enthaeltIds": ["z2"], "ablesestelle": "Keller",
+      "aktiv": true, "startStand": 1234.5, "updatedAt": "…", "deleted": false }
+  ],
+  "ablesung": [
+    { "id": "a1", "zaehlerId": "z1", "datum": "2026-01-15", "stand": 1300.2,
+      "notiz": "", "unsicher": false, "fotoKey": null, "preisMwhGenutzt": 0.10,
+      "createdAt": "…", "updatedAt": "…", "deleted": false }
+  ],
+  "preis":      [ { "id": "p1", "gueltigAb": "2026-01-01", "preisMWh": 0.10, "preisM3": 0, "notiz": "" } ],
+  "abschlagPlan":[ { "id": "ap1", "bewohnerId": "b1", "betrag": 25, "rhythmus": "monatlich", "aktiv": true } ],
+  "zahlung":    [ { "id": "z1", "bewohnerId": "b1", "betrag": 25, "faelligAm": "2026-03-01", "bezahltAm": "2026-03-04", "notiz": "" } ],
+  "abrechnung": [ { "id": "ab1", "jahr": 2026, "von": "2026-01-01", "bis": "2026-12-31",
+                    "betreiberBetrag": 1234.56, "betreiberHinweis": "…", "status": "entwurf",
+                    "positionen": [ /* eingefrorene Positionen */ ], "updatedAt": "…" } ],
+  "einstellungen": { "verteilSchluessel": "warm", "waehrung": "EUR", "objektName": "…",
+                     "ansprechpartner": "…", "pdfHinweis": "…", "datenRepo": "Mihi/heizung-data" }
+}
 ```
 
 **Hinweise**
 
-- `zaehler.enthaelt_ids` als JSON-Array → Zyklenprüfung in der Domain-Schicht (schnell, testbar).
-- `ablesung.preis_mwh_genutzt` = Preis-Snapshot (R9) → historische Berechnungen bleiben reproduzierbar.
-- Fotos/Belege: **nicht** in D1 (Größe) → R2-Storage (Cloudflare R2) oder nur optional; alternativ nur lokal auf dem Gerät. Datenschutz: Beweisfotos gehören nicht in ein öffentliches Repo.
-- `abrechnung.positionen` als JSON: eingefrorene Positionen einer abgeschlossenen Abrechnung dürfen sich nicht durch spätere Korrekturen verändern → Snapshot statt Neuberechnung.
-- Indizes: `ablesung(zaehler_id, datum)`, `zahlung(bewohner_id, faellig_am)`.
+- `ablesung` ist pro `(zaehlerId, datum)` eindeutig → Upsert-Key.
+- `zaehler.enthaeltIds` als Array → Zyklenprüfung in der Domain-Schicht (schnell, testbar).
+- `ablesung.preisMwhGenutzt` = Preis-Snapshot (R9) → historische Berechnungen bleiben reproduzierbar.
+- `abrechnung.positionen` = eingefrorene Positionen → spätere Korrekturen verändern eine abgeschlossene Abrechnung nicht.
+- `einstellungen.datenRepo` → Ziel-Repo (`owner/repo`) in den Einstellungen konfigurierbar, damit das Frontend nicht fest verdrahtet ist.
+- Fotos/Belege: bleiben **lokal** im Browser (IndexedDB) – nicht im Daten-Repo (groß, binär, unnötig).
+- Schreibvorgang: **eine** JSON-Datei pro Sync → ein Commit, ein SHA, keine Teil-Konflikte.
 
-## 4. Berechnungs-Kern (R0–R11) – Detail
+## 5. Berechnungs-Kern (R0–R11) – Detail
 
 ```ts
 // R1  Start-/Endstand je Zähler für eine Periode (Zwischenablesungen werden genutzt)
@@ -128,100 +179,54 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 - **R1 Startstand:** letzte Ablesung mit `datum <= from`; **Endstand**: letzte mit `datum <= to`. Fehlt einer → `complete = false` → Kennzeichnung in der UI.
 - **R2 Enthalten:** Rekursion mit `visited`-Set (Zyklen → Fehler). Enthaltene Zähler werden nicht zusätzlich direkt verteilt; ihr Verbrauch steckt schon im übergeordneten Zähler.
 - **R3 Verteilung:** `share_i = wasser_i / Σ wasser`; Wasser aus den **eigenen** Wasserzählern des Bewohners (inkl. enthaltener Zähler über R2). `Σ wasser = 0` → Admin-Rückfrage, Vorschlag gleichmäßig.
-- **R5/R7 Verteilung:** Gewichte = `kostenTheoretisch_i` (aus R4). Summe der Einzelbeträge == Betreiberbetrag **exakt**; Rest via Largest Remainder, deterministisch (Sortierung nach Bewohner-ID als Tie-Break → reproduzierbar).
+- **R5/R7 Verteilung:** Gewichte = `kostenTheoretisch_i` (aus R4). Summe der Einzelbeträge == Betreiberbetrag **exakt**; Rest via Largest Remainder, deterministisch (Tie-Break nach Bewohner-ID → reproduzierbar).
 - **R8 Plausibilität:** `delta < 0` → „Zählerwechsel/Fehlablesung"; `delta > 3× Median` → Warnung. Blockiert nur das *Abschließen* der Abrechnung.
 - **R9 Preis:** Preistabelle `gueltigAb`; Periode über Preisgrenze → Teilintervalle je Preisstufe, anteilig gewichtet.
 
 **Teststrategie:** Vitest-Table-Tests mit Referenzrechnungen (inkl. 3 MWh / 2 m³ / 1 m³-Beispiel, enthaltene Zähler, Preiswechsel, Rundungssummen-Gleichheit). Keine Snapshot-Heaviness.
 
-## 5. Cloud-Backend: Optionen im Detail
-
-### 5.1 Cloudflare Workers + D1 (empfohlen)
-
-- **Warum:** Ein Deployment deckt Datenspeicherung, Admin-Auth und Cloud-Save ab. Secrets bleiben serverseitig. Der Free-Tier reicht für eine Wohngemeinschaft; D1 ist SQLite (einfach zu lesen, zu backuppen, zu migrieren).
-- **Auth:** Admin-Login mit E-Mail + Passwort (Argon2id oder scrypt via `crypto.subtle`/WebCrypto bzw. `bcrypt`), Session-Token (Bearer, kurzlebig, in `httpOnly` Cookie wenn möglich, sonst `localStorage` + kurze TTL). Rate-Limit beim Login, 2FA optional (TOTP).
-- **API:** REST, JSON, `Authorization: Bearer <token>`; je Entität `GET /list`, `POST /upsert` (Batch mit `updatedAt`), `POST /delete` (Soft-Delete). Für unsyncte Offline-Änderungen: Batch-Upsert in einem Request.
-- **E-Mail:** entfällt – die Abrechnung wird als PDF im Browser erzeugt und vom Admin manuell verteilt.
-- **PDF:** entfällt serverseitig – pdf-lib läuft im Frontend.
-- **Kosten:** Worker + D1 im Free-Tier gratis (Limit beachten), keine Mail-/PDF-Dienste nötig.
-
-### 5.2 Supabase (Postgres + Auth) – Alternative
-
-- Auth eingebaut (E-Mail/Passwort), RLS, Realtime.
-- Passt, wenn SQL/RLS-Fortgeschrittenheit vorhanden ist oder Realtime gewünscht wird.
-- Nachteile: mehr Konfiguration (Schema, RLS-Policies, Service-/Anon-Keys, Supabase CLI), Preis-/Projektpausen.
-
-### 5.3 GitHub-API (privates Repo)
-
-- Daten in `data/state.json` eines privaten Repos (Commits = Audit-Trail), Token (fine-grained, nur dieses Repo) am Gerät.
-- Vorteil: kein Zusatzkonto, sofort umsetzbar. **Nachteil:** kein echter Admin-Login (Token am Gerät = Vollzugriff) → nur für Prototyp oder Single-Admin im privaten Umfeld.
-
-### 5.4 Firebase (Firestore)
-
-- Firestore mit Security Rules, Google-Login, Realtime. Vendor-Lock-in, Regeln in eigener DSL.
-
-### 5.5 Nur Browser (IndexedDB) + Export/Import
-
-- Kein echter Cloud-Save, kein Login → nur Demo/Prototyp. **Variante:** wenn nur ein Gerät genutzt wird, reicht das als „Backup-Umfeld" (Export vor jedem Abschluss).
-
-### 5.6 Entscheidung
-
-| Kriterium | CF Workers + D1 | Supabase | GitHub-API | Firebase | Nur Browser |
-|---|---|---|---|---|---|
-| Setup-Aufwand | mittel | mittel | sehr gering | mittel | keiner |
-| Admin-Login | selbst (muss gebaut werden) | eingebaut | ≈ Token | eingebaut | PIN |
-| Cloud-Save | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Kostenlos für diesen Fall | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Datenschutz/EU | ✅ eigenes Konto | ✅ eigenes Projekt | ✅ | ✅ | ✅ lokal |
-| Realtime | ⚠️ (Polling) | ✅ | ❌ | ✅ | ❌ |
-| Ein Deploy | ✅ | ⚠️ (DB + Auth) | ✅ | ⚠️ | – |
-
-**Empfehlung:** **Cloudflare Workers + D1.** Ein Deploy, volle Kontrolle, Secrets serverseitig, alles im kostenlosen Bereich. Der Frontend-Adapter (`StorageAdapter`) hält den Wechsel zu Supabase später offen.
-
-> Datenschutz: Namen/E-Mails sind personenbezogene Daten → eigenes Konto/Projekt (EU-Region), niemals Shared-Instance, Export & vollständige Löschung anbieten, Backups des eigenen Kontos.
-
 ## 6. Sync-Engine (Frontend)
 
 - **Schreibvorgang:** UI mutiert den lokalen Cache (IndexedDB) sofort → UI ist instant & offline-fähig → Queue-Eintrag (`op: upsert|delete`, entity, payload, `updatedAt`).
-- **Flush:** beim Start, bei `online`-Event und alle X Sekunden → Batch-Upserts an die API.
-- **Konflikt:** Last-Write-Wins **je Datensatz** anhand `updatedAt`; bei Gleichstand gewinnt der Server. Konflikte erscheinen im Sync-Log (kein stiller Datenverlust).
-- **Auth-Fehler:** 401 → `authRequired` → Re-Login-Dialog; Queue bleibt erhalten.
+- **Flush:** beim Start, bei `online`-Event und alle X Sekunden → ein Request (gesamter State) an die GitHub-API.
+- **Schreiben:** `PUT contents/data/state.json` mit aktuellem `sha`; bei `409` → Serverstand holen, mergen (Last-Write-Wins je Datensatz nach `updatedAt`), erneut schreiben; Konflikte erscheinen im Sync-Log.
+- **Auth-Fehler:** 401/403 → `authRequired` → Re-Login-Dialog (Device-Flow erneut starten); Queue bleibt erhalten.
+- **Rate-Limit:** 1 Request pro Sync-Zyklus → weit unter 5.000/h. Optional „nur bei Änderung" schreiben (Dirty-Flag).
 - **Status in der UI:** „Gespeichert · Synced 12:03" / „3 Änderungen ausstehend" / „Offline" / „Anmeldung nötig".
 
-## 7. Admin-Auth
+## 7. PDF-Erzeugung (clientseitig)
 
-- Nur **ein** Admin (bzw. wenige) → Rollenmodell ist optional vorbereitet (`admin`, später `viewer`).
-- Passwort-Hash: scrypt/Argon2id mit Salt; keine Klartext-Passwörter in der DB; `session`-Tabelle mit `expires_at`.
-- Login-Seite geschützt; alle API-Routen prüfen den Bearer-Token; Frontend-Routen per `ProtectedRoute`.
-- 2FA (TOTP) optional als Upgrade in S8.
-- **Kein** Bewohner-Login (Entscheidung) → Bewohner erhalten die PDF, die der Admin verteilt.
-
-## 8. PDF-Erzeugung (clientseitig)
-
-- **pdf-lib im Frontend:** Die PDF entsteht im Browser aus den **eingefrorenen** Positionen einer Abrechnung – keine Server-Render-Logik, keine zusätzlichen Secrets, personenbezogene Daten verlassen das Gerät nicht.
+- **pdf-lib im Frontend:** Die PDF entsteht im Browser aus den **eingefrorenen** Positionen einer Abrechnung – kein Server-Rendering, keine zusätzlichen Secrets, personenbezogene Daten verlassen das Gerät nicht.
 - **Inhalt Einzel-PDF je Bewohner:** Kopf (Objekt, Zeitraum, Bewohner, Datum), Tabelle (Warmwasser m³ rot, Kaltwasser m³ blau, Energie MWh, Anteil %, Kosten, Abschläge, Saldo), Fuß (Hinweis, Kontakt, Erläuterung der Verteilung). Farbcodierung warm/kalt/Energie wird übernommen.
 - **Sammel-PDF** (alle Bewohner, Archiv) und **CSV-Export** (maschinenlesbar) ergänzend.
 - **Ausgabe:** Browser-Download bzw. „Teilen"-Dialog auf dem Handy (Teilen mit Mail-/Druck-App hängt die Datei als Anhang an → E-Mail ohne Mailserver möglich).
-- **Briefkopf optional:** Logo/Briefkopf als Bild (lokal im Browser hinterlegt oder als Data-URL im Export); Textbausteine (Objektname, Ansprechpartner, Hinweistext) aus `einstellungen`.
+- **Briefkopf optional:** Logo/Briefkopf als Bild (lokal im Browser hinterlegt); Textbausteine (Objektname, Ansprechpartner, Hinweistext) aus `einstellungen`.
 - **Vorschau:** vor dem Download kann die PDF in einem Viewer geprüft werden (Blob-URL im Tab / in-app Vorschau).
+
+## 8. Admin-Zugriff
+
+- **Ein** Admin (bzw. wenige) → Rollenmodell optional vorbereitet (`admin`, später `viewer`).
+- **Auth = GitHub-Login** (Device-Flow) → keine eigene Passwortverwaltung, keine 2FA-Pflicht (GitHub-2FA gilt), Token-Widerruf im GitHub-UI.
+- **Autorisierung:** Der Token muss auf das Daten-Repo schreiben können; ein Token ohne Repo-Zugriff liefert 403 → App meldet „Zugriff auf Daten-Repo fehlt" mit Hinweis auf die nötigen Scopes.
+- **Grenze:** Jeder mit Token-Zugriff auf das Daten-Repo hat Vollzugriff → Token entsprechend behandeln (nur Admin-Rechner, Abmelden löscht den Token).
 
 ## 9. Kamera/OCR (optional)
 
 - Foto über `<input type="file" accept="image/*" capture="environment">` → Gerätekamera direkt.
 - Optional: Tesseract.js (clientseitig, lazy geladen) liefert Ziffernvorschlag → **muss vom Nutzer bestätigt** werden, nie automatisch gespeichert.
 - Ohne OCR: Bild anbei + manuelles Tippen (empfohlen für M0/M1, da OCR bei schlechten Zählerfotos unzuverlässig ist).
-- **Beleg-Speicher:** standardmäßig lokal (IndexedDB, nur auf dem Admin-Gerät); optional später in R2 mit Ablaufdatum.
+- **Beleg-Speicher:** lokal (IndexedDB, nur auf dem Admin-Gerät); NICHT im Daten-Repo (Größe, Binärdaten, unnötige Verteilung).
 
 ## 10. Farbkodierung (Design-System)
 
 | Token | Wert | Verwendung |
 |---|---|---|
 | `--c-warm` | Rot (z. B. `#c62828`) | Warmwasser-Zähler, warm-Kennzahlen, Badge |
-| `--c-kalt` | Blau (z. B. `#1565c0`) | Kaltwasser-Zähler, kalt-Kennzahlen, Badge |
+| `--c-kalt` | Blau (z. B. `#1565c0`) | Kaltwasserzähler, kalt-Kennzahlen, Badge |
 | `--c-energie` | Bernstein (z. B. `#ef6c00`) | Energiezähler, MWh-Werte |
 
 - Zähler-Typ-Badge in allen Listen/Tabellen, Zählerkarte, Kurven, PDF.
-- Nicht nur Farbe: zusätzlich Icon/Text („Warm"/"Kalt"/"Energie") → Barrierefreiheit.
+- Nicht nur Farbe: zusätzlich Icon/Text („Warm"/„Kalt"/„Energie") → Barrierefreiheit.
 - Kontrastverhältnis ≥ 4.5:1 für Text auf farbigem Grund prüfen.
 
 ## 11. Deployment
@@ -229,25 +234,29 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 - **Frontend (GitHub Pages):** `.github/workflows/pages.yml` → `npm ci` → `npm run build` → `upload-pages-artifact` → `deploy-pages`. Repo-Settings: Pages-Source = *GitHub Actions*.
   - Basis-Pfad: `vite.config.ts` mit `base: '/heizung/'` (Repo-Name!) → `VITE_BASE_PATH`.
   - Router: **HashRouter** (robust bei GitHub Pages ohne 404-Fallback) oder BrowserRouter + `404.html`-Copy.
-  - `VITE_API_BASE_URL` (URL des Workers) wird beim Build injiziert – kein Secret.
-- **Backend (Cloudflare):** `wrangler deploy` (manuell oder via GitHub Action mit `CLOUDFLARE_API_TOKEN`-Secret); Secrets: `wrangler secret put SESSION_SECRET`, `ADMIN_PASSWORD_HASH`.
+  - `VITE_GITHUB_CLIENT_ID` (OAuth App) und `VITE_DATA_REPO` (Standard-Repo) werden beim Build injiziert – **keine Secrets** (Client-ID ist öffentlich).
+- **Daten-Repo:** privates Repo anlegen, `data/state.json` mit leerem Grundgerüst anlegen, `owner/repo` in den Einstellungen der App eintragen (oder per `VITE_DATA_REPO` voreinstellen).
+- **OAuth App:** GitHub → Settings → Developer settings → OAuth Apps → "Device flow" aktivieren; Client-ID wird ins Frontend eingebaut (öffentlich, kein Geheimnis).
+- **Kosten:** 0 € (GitHub Pages + private Repos + API).
 
 ## 12. Risiken & Gegenmaßnahmen
 
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Falsche Verteilung → Geldstreit | Tests mit Referenzrechnungen, Herleitung je Position (Betrag ← Anteil ← Verbrauch ← Stände) |
-| Datenverlust | Cloud-Sync + lokales Backup + Export-Hinweis; D1-Backups (D1 time-travel / Export) |
-| PDF verliert Layout auf anderen Geräten | Fonts einbetten (pdf-lib), Test auf iOS/Android-Viewer, Sammel-PDF zusätzlich als CSV |
-| Backend-Ausfall | Frontend bleibt offline nutzbar (IndexedDB + Queue), Sync Later |
-| Preisänderung im Betrieb | Preis-Historie + Snapshot pro Ablesung (R9) |
-| Komplexe Zählerstruktur | Zyklenprüfung + visuelle Strukturansicht in S2 |
-| DSGVO | eigene Cloud-Instanz, Export/Löschen, Zugriffsschutz, Logs ohne personenbezogene Daten |
-| Repo ist öffentlich | Secret-Scan im CI, keine Daten im Repo, `.gitignore` für lokale Exportdateien |
+| Datenverlust | Cloud-Save + lokales Backup + Export-Hinweis; Git-Historie des Daten-Repos ist der Restore |
+| Token im Browser (XSS) | keine Fremd-Skripte/CDN/Analytics, restriktive CSP, `dangerouslySetInnerHTML` verboten |
+| Token umfasst mehr als nötig | Daten-Repo isoliert halten, Token nur mit Schreibrecht darauf, Widerruf jederzeit in GitHub |
+| OAuth-Gerät-Idiotismus | `verification_uri_complete` als QR anzeigen, klare Anleitung, 10-min-Timeout |
+| Rate-Limit | 1 Request pro Sync-Zyklus, Dirty-Flag, `If-None-Match`/SHA-Prüfung vor dem Schreiben |
+| Offline-Daten divergent | Sync-Log mit Konflikten, „Lokal zurücksetzen"-Aktion |
+| DSGVO | eigenes privates Repo, Export/Löschen, Zugriffsschutz, Daten-Repo-Name im Impressum nennen |
+| Repo ist öffentlich | Secret-Scan im CI, keine Daten im Code-Repo, `.gitignore` für lokale Exportdateien |
 
 ## 13. Offene Architektur-Entscheidungen
 
-- Einzel-PDF je Bewohner vs. Sammel-PDF (+ Archiv) – Empfehlung: beides.
-- Zwei-Faktor-Login für den Admin.
+- Fein-grained PAT (nur Daten-Repo) statt Device-Flow → sicherer, aber kein „GitHub-Login" und Token manuell zu pflegen.
+- Ende-zu-Ende-Verschlüsselung der JSON (WebCrypto-Passphrase) → höchste Datenschutzstufe, Aufwand + Bedienhürde.
+- Ein data-repo vs. mehrere (z. B. je Jahr ein Repo-File) → Historie im Repo reicht.
 - Realtime-Sync (nötig?) oder Polling im 30-s-Takt reicht (nur ein Admin → Polling reicht).
 - Preis-Stufen pro Jahr vs. Preis-Historie mit Datum (Empfehlung: Historie mit Datum deckt beides ab).
