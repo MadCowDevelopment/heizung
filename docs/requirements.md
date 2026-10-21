@@ -176,7 +176,7 @@ Sync-Fehler-Banner, Offline-Hinweis, Validierungs- und Plausibilitäts-Markierun
 
 - **Mobil-first**, PWA-installierbar, offline-fähige Eingabe (lokale Queue) mit Nachsenden.
 - **Statisches Frontend auf GitHub Pages**, **kein eigenes Backend** – Datenhaltung über privates GitHub-Repo (siehe Architektur).
-- **Admin-only-Zugriff:** Anmeldung mit **GitHub-Login** (OAuth Device-Flow). Bewohner haben **keinen** Login, sie erhalten die PDF.
+- **Admin-only-Zugriff:** Anmeldung über ein **GitHub-Fine-grained PAT**, das auf genau das private Daten-Repo (`Contents: Read and write`) beschränkt ist; die App prüft es per `GET /user`. Kein eigener Login, Token-Widerruf im GitHub-UI. Bewohner haben **keinen** Login, sie erhalten die PDF. (Ein OAuth-Device-Flow ist aus dem Browser nicht aufrufbar – CORS, siehe [architecture.md §2.1](./architecture.md).)
 - **Personenbezogene Daten** (Namen, Stände) liegen ausschließlich im **privaten** Daten-Repo; Zugriff nur über den GitHub-Token des Admins. Export & vollständige Löschung, Historie/Restore über Git-Commits.
 - **PDF-Erzeugung clientseitig** → keine PDF-/Mail-Dienste, keine zusätzlichen Geheimnisse, Daten verlassen das Gerät nicht.
 - **Sprache:** UI Deutsch (i18n EN vorbereitet), `de-DE`-Format für Datum/Zahl/Währung.
@@ -202,7 +202,7 @@ Detail: [architecture.md](./architecture.md)
 | PDF/CSV | **clientseitig** (pdf-lib für PDF, CSV-Export) | PDF enthält personenbezogene Daten → bleibt auf dem Admin-Gerät, kein Versanddienst nötig |
 | i18n | `react-i18next` | de/en |
 | Tests | Vitest (Rechenlogik) + Playwright (Erfassungs- & Login-Flow) | R1–R11 sind das Kernrisiko |
-| Backend | **keins** – GitHub API als Datenspeicher | GitHub-Login + privates Daten-Repo: Cloud-Save ohne eigenes Backend |
+| Backend | **keins** – GitHub API als Datenspeicher | Fine-grained PAT + privates Daten-Repo: Cloud-Save ohne eigenes Backend |
 
 ### 6.2 Cloud-Speicher – Optionen
 
@@ -210,14 +210,14 @@ Ohne E-Mail-Versand und ohne eigenes Backend reicht die **GitHub API** als Daten
 
 | Option | Datenspeicher | Admin-Login | Aufwand | Passt, wenn… |
 |---|---|---|---|---|
-| **GitHub API + privates Daten-Repo** (empfohlen) | privates Repo (`data/state.json`) | ✅ **GitHub-Login** (OAuth Device-Flow) | sehr gering (kein Server!) | Cloud-Save ohne Zusatzkonto; Commits = Historie/Rollback |
-| **Cloudflare Workers + D1** | eigenes SQLite (D1) | selbst implementiert (Passwort-Hash + Session) | mittel | echtes Mehrbenutzer-Rechtemodell, Realtime, Secrets serverseitig |
+| **GitHub API + privates Daten-Repo** (empfohlen) | privates Repo (`data/state.json`) | ✅ **GitHub-Fine-grained PAT** (nur Daten-Repo) | sehr gering (kein Server!) | Cloud-Save ohne Zusatzkonto; Commits = Historie/Rollback |
+| **Cloudflare Workers + D1** | eigenes SQLite (D1) | selbst implementiert (Passwort-Hash + Session) **oder** Token-Broker für GitHub-Login | mittel | echtes Mehrbenutzer-Rechtemodell, Realtime, Secrets serverseitig |
 | **Supabase** (Postgres + Auth) | eigener Postgres | ✅ eingebaut | mittel (SQL + RLS + CLI) | SQL/RLS-Fortgeschrittenheit vorhanden, Realtime gewünscht |
 | **Firebase** (Firestore) | Firestore | Google-Login | mittel | Firebase-Ökosystem gewünscht |
 | **Nur Browser** (IndexedDB) + Export/Import | Gerät | PIN | keiner | Single-Device-Betrieb ohne Cloud-Save |
 
 **Empfehlung**
-1. **GitHub API + privates Daten-Repo** mit GitHub-Login (Device-Flow): kein Backend, kein Deployment außer GitHub Pages, Cloud-Save inkl. Historie über Git-Commits. Der Zugriff auf das Daten-Repo wird über den GitHub-Token des Admins geregelt; der Token wird nie im Code-Repo abgelegt.
+1. **GitHub API + privates Daten-Repo** mit Fine-grained PAT (nur Daten-Repo, nur `Contents: R/W`): kein Backend, kein Deployment außer GitHub Pages, Cloud-Save inkl. Historie über Git-Commits. Der Token wird nie im Code-Repo abgelegt, sondern zur Laufzeit in den Einstellungen hinterlegt. Ein echter OAuth-Login (Device-Flow) ist aus dem Browser **nicht** aufrufbar (CORS-Blocker, [architecture.md §2.1](./architecture.md)) – der Ausbaupfad ist ein Token-Broker (Cloudflare Worker).
 2. **Alternative Cloudflare Workers + D1**, falls später echtes Mehrbenutzer-Rechtemodell, Realtime oder serverseitige Secrets nötig werden.
 3. Im Frontend **`StorageAdapter`**-Abstraktion (`list/read/write/delete`), damit der Provider austauschbar bleibt (späterer Wechsel = Konfiguration).
 4. **Immer** lokaler Cache (IndexedDB) + Export/Import (JSON, `schemaVersion`) → App funktioniert offline, Datenverlust ist abgesichert.
@@ -237,13 +237,13 @@ flowchart LR
 
 - **Berechnung als reine Funktionen** (`computePeriod(period, meters, readings, prices)`), testbar, ohne Store/Netz.
 - **Sync-Engine:** lokale Mutation sofort in IndexedDB → Queue → ein Schreib-Request je Sync-Zyklus (SHA-Optimistic-Locking, bei 409 Merge + Retry).
-- **Auth:** GitHub-OAuth-Token (Device-Flow) im Browser; jeder Request mit `Authorization: token`; 401/403 → Re-Login.
+- **Auth:** Fine-grained PAT im Browser (`localStorage`); jeder Request mit `Authorization: Bearer <token>`; 401/403 → Re-Auth-Dialog (Token neu einfügen).
 - **PDF:** entsteht vollständig im Browser aus den eingefrorenen Abrechnungspositionen.
 
 ### 6.4 Umsetzungsschritte
 
 1. **M0 Statischer Prototyp:** Domänenmodell + Rechenkern (R1–R11) + Unit-Tests; S2/S3/S4 mit lokalem Adapter; Startablesungen-Import.
-2. **M1 Cloud:** GitHub-Login (Device-Flow), `StorageAdapter` für die GitHub-API, Sync-Engine mit SHA-Merge, S5/S6.
+2. **M1 Cloud:** Token-Verwaltung (Fine-grained PAT) + `StorageAdapter` für die GitHub-API + Sync-Engine mit SHA-Merge, S5/S6.
 3. **M2 Abrechnung:** S7 (Betreiberbetrag, Verteilung, Abschläge, Einzel-/Sammel-PDF, CSV), Export/Import.
 4. **M3 Politur:** Kamera/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n, GitHub Actions → Pages.
 
@@ -290,6 +290,7 @@ Ablage als **eine JSON-Datei** in einem privaten GitHub-Repo (`data/state.json`)
 | 8 | Währung EUR; CHF später | EUR |
 | 9 | Preiskonvention: pro Kalenderjahr oder Preisstufen mit Datum? | **entschieden:** datumsgenaue Preisstufen („gültig ab"), mehrere Wechsel pro Jahr; Perioden werden an der Grenze geteilt |
 | 10 | Startablesungen: als Import-Datei (CSV) oder manuell in der UI? | beide (CSV-Paste + manuell) |
-| 11 | Zugriffsschutz der App | **entschieden:** GitHub-Login (OAuth Device-Flow) – kein eigenes Passwort, 2FA des GitHub-Kontos wirkt automatisch |
+| 11 | Zugriffsschutz der App | **entschieden:** GitHub-Fine-grained PAT, beschränkt auf das Daten-Repo (`Contents: R/W`) – kein eigenes Passwort, Widerruf im GitHub-UI, Token-Ablauf sichtbar in den Einstellungen |
 | 12 | Cloud-Save von mehreren Geräten nötig oder reicht ein Gerät + Export/Import? | **entschieden:** Cloud-Save via privates GitHub-Daten-Repo + lokale Kopie + Export/Import |
-| 13 | Daten-Repo: eigenes privates Repo (z. B. `MadCowDevelopment/heizung-data`) oder im Code-Repo (nicht möglich, öffentlich)? | eigenes privates Daten-Repo |
+| 13 | Daten-Repo: eigenes privates Repo (z. B. `MadCowDevelopment/heizung-data`) oder im Code-Repo (nicht möglich, öffentlich)? | eigenes privates Daten-Repo → **angelegt:** `MadCowDevelopment/heizung-data` (privat, `data/state.json`) |
+| 14 | Wie meldet sich der Admin an? | **entschieden:** Fine-grained PAT (nur Daten-Repo). Device-Flow/OAuth ist aus dem Browser nicht aufrufbar (CORS) → Ausbaupfad: Token-Broker (Cloudflare Worker). Einrichtung: [setup.md](./setup.md) |

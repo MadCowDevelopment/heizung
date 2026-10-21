@@ -8,7 +8,8 @@
 **Ein** Deployment: statisches Frontend auf GitHub Pages. Kein Backend, kein Worker, keine DB-Dienste.
 
 - **Datenhaltung:** privates GitHub-Repo als JSON-Ablage (`data/state.json`) über die GitHub REST API.
-- **Zugriff:** **GitHub-Login (OAuth Device-Flow)** – der Admin meldet sich mit GitHub an, ein OAuth-Token (Browser-Session) erlaubt Lesen/Schreiben im Daten-Repo. Kein eigenes Passwort, keine 2FA-Pflicht, Tokens nie im Repo.
+- **Zugriff:** **GitHub-Fine-grained PAT** – der Admin hinterlegt ein Token, das auf **genau ein** Repository (`MadCowDevelopment/heizung-data`) und **nur `Contents: Read and write`** beschränkt ist. Kein eigenes Passwort, Tokens nie im Repo, jederzeit im GitHub-UI widerrufbar.
+  - Ein echter „GitHub-Login"-Button (OAuth Device-Flow) ist **technisch nicht möglich**, solange es kein Backend gibt – Begründung und Messwerte in §2.1.
 - **PDF:** clientseitig (pdf-lib) im Browser.
 - **Offline:** IndexedDB-Cache + Queue; Sync beim Start / bei Netzänderung.
 
@@ -26,7 +27,7 @@
 │   ↓                                                 │
 │ storage/github.ts  →  GitHub REST API                │
 └──────────────────────┬───────────────────────────────┘
-                       │ HTTPS + OAuth-Token
+                       │ HTTPS + Bearer-Token
 ┌──────────────────────▼───────────────────────────────┐
 │ Privates GitHub-Repo (Daten)                         │
 │  data/state.json   (aktueller Stand)                │
@@ -37,17 +38,39 @@
 **Kein Mail-Server, kein PDF-Server, kein Backend:** Die PDF entsteht im Browser, die Verteilung erfolgt manuell
 (Admin hängt das PDF an bzw. druckt es). Damit bleibt die ganze Anlage ein statisches Deployment.
 
-## 2. Datenzugriff: GitHub-Login + privates Daten-Repo
+## 2. Datenzugriff: GitHub-Token + privates Daten-Repo
 
-### 2.1 Anmeldung (OAuth Device-Flow)
+### 2.1 Anmeldung (Token statt OAuth-Login)
 
-- GitHub unterstützt den **Device Authorization Grant** (`/login/device/code`) – ideal für Browser-Apps, die kein Redirect-Secret besitzen:
-  1. App fragt `POST https://github.com/login/device/code` (Client-ID) an → erhält `device_code` + `user_code` + `verification_uri`.
-  2. App zeigt „Code `XXXX-XXXX` auf github.com/login/device eingeben" + QR-Link.
-  3. Nutzer loggt sich bei GitHub ein, bestätigt die App, autorisiert die Scopes.
-  4. App pollt `POST https://github.com/login/oauth/access_token` → erhält `access_token` (+ `refresh_token`, falls verfügbar) → legt es im `localStorage` ab (Browser-Session, 30 Tage).
-- **Scopes:** `repo` (nötig für private Repos) bzw. möglichst eng `contents:read` + `contents:write` **auf genau das Daten-Repo** – dafür ist ein **Fine-grained PAT** nötig. Device-Flow mit OAuth-App unterstützt nur klassische, repo-weite Tokens → **wichtig**: Daten-Repo möglichst in einer eigenen Organisation/mit separaten Credentials halten, oder stattdessen einen Fine-grained PAT verwenden.
-- **Empfehlung:** klassischer Device-Flow (einfach, echter GitHub-Login) + Daten-Repo in einem **eigenen privaten Repo**; Zugriffsrechte bewusst eng halten (Daten-Repo enthält keine anderen Daten als Zählerstände).
+**Messung vom 21.10.2026 (Browser-Preflight gegen die echten Endpunkte):**
+
+| Endpunkt | `Access-Control-Allow-Origin` | Preflight | Browserfähig? |
+|---|---|---|---|
+| `https://api.github.com/…` | `*` | 204, Methoden GET/POST/PATCH/PUT/DELETE, Header `Authorization` erlaubt | ✅ **ja** |
+| `https://github.com/login/device/code` | **fehlt** | 404 | ❌ **nein** |
+| `https://github.com/login/oauth/access_token` | **fehlt** | 404 | ❌ **nein** |
+
+Folge: Der **OAuth Device-Flow lässt sich aus reinem Browser-JavaScript nicht aufrufen** – der Code-Request scheitert schon am CORS-Preflight, bevor GitHub ihn sieht. Der Token-Tausch (`/login/oauth/access_token`) ist ebenfalls nicht CORS-fähig und verlangt ohnehin `client_secret` (PKCE ist bei GitHub nur „strongly recommended", nicht verpflichtend).
+
+> Ein Client-Secret im Frontend zu hinterlegen wäre ein Vollzugriff auf die OAuth-App – deshalb verworfen. Ein GitHub-App-„Client-Secret" wäre dasselbe Problem.
+
+**Konsequenz:** Datenzugriff ja (CORS ok), *Anmeldung* über einen echten GitHub-OAuth-Flow nein (CORS blockiert). Zwei verbleibende Wege:
+
+| Variante | Ablauf | Bewertung |
+|---|---|---|
+| **A – Fine-grained PAT ( gewählt)** | Admin erzeugt einmalig ein Token mit `Contents: R/W` **nur** auf `MadCowDevelopment/heizung-data` und trägt es in *Einstellungen → Konto & Cloud* ein. Die App prüft es mit `GET /user` (Anzeige des GitHub-Namens). | ✅ **empfohlen** – kein Server, kleinster Rechtekreis, sofort widerrufbar, Repo-übergreifend wirkungslos |
+| **B – Token-Broker (Cloudflare Worker)** | Worker hält Client-Secret + Refresh-Token, Browser bekommt kurzlebige Sitzungstoken. Echter Login-Flow (Redirect zu GitHub). | sinnvoll, sobald mehrere Geräte/Personen je eigenes Token brauchen; wieder ein (kostenloses) Backend, ca. 30 Min Aufwand |
+
+**Umsetzung A im Detail**
+
+- **Token-Erzeugung:** https://github.com/settings/personal-access-tokens/new → Resource owner `MadCowDevelopment` → *Only select repositories* → `heizung-data` → Permission *Contents: Read and write*, alles andere *No access* → fertig. Schritt-für-Schritt in [`docs/setup.md`](setup.md).
+- **Token-Speicher:** `localStorage` (Key `heizung.token`), **nur** im Browser des Admins. Kein Analytics, keine Fremd-Skripte, restriktive CSP → XSS-Risiko minimiert.
+- **Session-Status:** beim Start `GET /user` → Anzeige „Angemeldet als *Mihi*"; bei 401/403 → Re-Auth-Dialog (Token neu einfügen), die Sync-Queue bleibt erhalten.
+- **Widerruf:** GitHub → Settings → Developer settings → Personal access tokens → *Revoke* – wirkt sofort, Daten im Repo bleiben.
+- **Abgelaufene Tokens:** das Token hat ein Ablaufdatum (max. 1 Jahr bei Fine-grained PAT); die App zeigt das Ablaufdatum im Konto-Screen und fordert 30 Tage vorher zum Erneuern auf.
+- **Org-Kontext:** `MadCowDevelopment` ist eine Organisation, `Mihi` ist Admin. 2FA-Pflicht und SAML-SSO sind **nicht** aktiv → ein Fine-grained PAT ohne 2FA ist erzeugbar; SSO würde den Token-Broker (Variante B) erzwingen.
+- **Rechte-Granularität:** *Kein* GitHub-Feature kann den Admin auf ein einzelnes privates Repo beschränken, wenn er mehreren Nutzern Zugriff geben will → Ablösung des PAT durch den Broker (B) ist der dokumentierte Ausbaupfad.
+
 
 ### 2.2 Datenzugriff
 
@@ -66,7 +89,7 @@
 | XSS → Token-Diebstahl | keine Fremd-Skripte/CDN-Skripte, keine Analytics, restriktive CSP, keine `dangerouslySetInnerHTML` |
 | Repo-Sichtbarkeit | Daten-Repo **privat**; im Code-Repo liegt nur Code |
 | Verschlüsselung | HTTPS/TLS (GitHub) + GitHub-At-Rest-Verschlüsselung; optional zusätzlich Ende-zu-Ende-Verschlüsselung der JSON (WebCrypto, Passphrase) → Aufwand steigt, deshalb optional |
-| 2FA | GitHub-2FA gilt automatisch mit; Token selbst ist ein Bearer, den man im GitHub-UI widerrufen kann |
+| 2FA | Für den Fine-grained PAT ist 2FA nicht zwingend (Org hat keine 2FA-Pflicht) – Token selbst ist ein Bearer, den man im GitHub-UI widerrufen kann |
 | Löschung | Daten-Repo löschen = alle Daten weg; zusätzlich Export/Import im App |
 
 ### 2.4 Alternativen (kurz)
@@ -95,10 +118,10 @@ apps/web/                    # Frontend → GitHub Pages
         plausibility.ts      # R8  Warnungen
     storage/
       adapter.ts             # interface StorageAdapter
-      github.ts              # GitHub-REST-Implementierung (+ OAuth Device-Flow)
+      github.ts              # GitHub-REST-Implementierung (Contents-API, Fine-grained PAT)
       indexeddb.ts           # lokaler Cache + Offline-Queue
     sync/                    # Queue, Last-Write-Wins, Retry/Backoff, Status
-    auth/                    # Device-Flow, Token-Store, Session-Status
+    auth/                    # Token-Store (localStorage), Session-Status, Re-Auth-Dialog
     pdf/                     # pdf-lib Layout, Einzel- + Sammel-PDF
     ui/screens/              # S1..S9
     ui/components/           # ZählerKarte, Eingabefeld, VerteilungsTabelle, …
@@ -190,7 +213,7 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 - **Schreibvorgang:** UI mutiert den lokalen Cache (IndexedDB) sofort → UI ist instant & offline-fähig → Queue-Eintrag (`op: upsert|delete`, entity, payload, `updatedAt`).
 - **Flush:** beim Start, bei `online`-Event und alle X Sekunden → ein Request (gesamter State) an die GitHub-API.
 - **Schreiben:** `PUT contents/data/state.json` mit aktuellem `sha`; bei `409` → Serverstand holen, mergen (Last-Write-Wins je Datensatz nach `updatedAt`), erneut schreiben; Konflikte erscheinen im Sync-Log.
-- **Auth-Fehler:** 401/403 → `authRequired` → Re-Login-Dialog (Device-Flow erneut starten); Queue bleibt erhalten.
+- **Auth-Fehler:** 401/403 → `authRequired` → Re-Auth-Dialog (Token neu einfügen); Queue bleibt erhalten.
 - **Rate-Limit:** 1 Request pro Sync-Zyklus → weit unter 5.000/h. Optional „nur bei Änderung" schreiben (Dirty-Flag).
 - **Status in der UI:** „Gespeichert · Synced 12:03" / „3 Änderungen ausstehend" / „Offline" / „Anmeldung nötig".
 
@@ -207,7 +230,7 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 ## 8. Admin-Zugriff
 
 - **Ein** Admin (bzw. wenige) → Rollenmodell optional vorbereitet (`admin`, später `viewer`).
-- **Auth = GitHub-Login** (Device-Flow) → keine eigene Passwortverwaltung, keine 2FA-Pflicht (GitHub-2FA gilt), Token-Widerruf im GitHub-UI.
+- **Auth = GitHub-Token** (Fine-grained PAT, §2.1) → keine eigene Passwortverwaltung; Token-Widerruf im GitHub-UI.
 - **Autorisierung:** Der Token muss auf das Daten-Repo schreiben können; ein Token ohne Repo-Zugriff liefert 403 → App meldet „Zugriff auf Daten-Repo fehlt" mit Hinweis auf die nötigen Scopes.
 - **Grenze:** Jeder mit Token-Zugriff auf das Daten-Repo hat Vollzugriff → Token entsprechend behandeln (nur Admin-Rechner, Abmelden löscht den Token).
 
@@ -235,9 +258,9 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 - **Frontend (GitHub Pages):** `.github/workflows/pages.yml` → `npm ci` → `npm run build` → `upload-pages-artifact` → `deploy-pages`. Repo-Settings: Pages-Source = *GitHub Actions*.
   - Basis-Pfad: `vite.config.ts` mit `base: '/heizung/'` (Repo-Name!) → `VITE_BASE_PATH`.
   - Router: **HashRouter** (robust bei GitHub Pages ohne 404-Fallback) oder BrowserRouter + `404.html`-Copy.
-  - `VITE_GITHUB_CLIENT_ID` (OAuth App) und `VITE_DATA_REPO` (Standard-Repo) werden beim Build injiziert – **keine Secrets** (Client-ID ist öffentlich).
-- **Daten-Repo:** privates Repo anlegen, `data/state.json` mit leerem Grundgerüst anlegen, `owner/repo` in den Einstellungen der App eintragen (oder per `VITE_DATA_REPO` voreinstellen).
-- **OAuth App:** GitHub → Settings → Developer settings → OAuth Apps → "Device flow" aktivieren; Client-ID wird ins Frontend eingebaut (öffentlich, kein Geheimnis).
+  - `VITE_DATA_REPO` (Standard-Repo `MadCowDevelopment/heizung-data`) wird beim Build injiziert – **keine Secrets**. Das Zugriffstoken wird **nie** gebaut, sondern zur Laufzeit vom Admin eingegeben.
+- **Daten-Repo:** `MadCowDevelopment/heizung-data` (privat, Branch `main`) mit `data/state.json` – **bereits angelegt**, siehe [`docs/setup.md`](setup.md).
+- **Token:** Fine-grained PAT, vom Admin in den Einstellungen der App hinterlegt – **keine OAuth-App nötig** (Device-Flow ist aus dem Browser nicht aufrufbar, §2.1).
 - **Kosten:** 0 € (GitHub Pages + private Repos + API).
 
 ## 12. Risiken & Gegenmaßnahmen
@@ -247,8 +270,9 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 | Falsche Verteilung → Geldstreit | Tests mit Referenzrechnungen, Herleitung je Position (Betrag ← Anteil ← Verbrauch ← Stände) |
 | Datenverlust | Cloud-Save + lokales Backup + Export-Hinweis; Git-Historie des Daten-Repos ist der Restore |
 | Token im Browser (XSS) | keine Fremd-Skripte/CDN/Analytics, restriktive CSP, `dangerouslySetInnerHTML` verboten |
-| Token umfasst mehr als nötig | Daten-Repo isoliert halten, Token nur mit Schreibrecht darauf, Widerruf jederzeit in GitHub |
-| OAuth-Gerät-Idiotismus | `verification_uri_complete` als QR anzeigen, klare Anleitung, 10-min-Timeout |
+| Token umfasst mehr als nötig | Fine-grained PAT ist auf **ein** Repo + **eine** Permission beschränkt; Daten-Repo isoliert; Widerruf jederzeit in GitHub |
+| Kein echter GitHub-Login (CORS-Blocker bei Device-Flow) | PAT im Konto-Screen, minimaler Rechtekreis; Ausbaupfad Token-Broker (Cloudflare Worker) in §2.1 Variante B |
+| Token verfällt (max. 1 Jahr) | Ablaufdatum im Konto-Screen anzeigen, 30 Tage vorher Erinnerung; Daten im Repo bleiben unberührt |
 | Rate-Limit | 1 Request pro Sync-Zyklus, Dirty-Flag, `If-None-Match`/SHA-Prüfung vor dem Schreiben |
 | Offline-Daten divergent | Sync-Log mit Konflikten, „Lokal zurücksetzen"-Aktion |
 | DSGVO | eigenes privates Repo, Export/Löschen, Zugriffsschutz, Daten-Repo-Name im Impressum nennen |
@@ -256,11 +280,11 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 
 ## 13. Offene Architektur-Entscheidungen
 
-**Bereits entschieden (Round 4/5):** Backend-frei (GitHub-Login + privates Daten-Repo) · Verteilungs-Schlüssel Default `warm` · Preisstufen datumsgenau („gültig ab", mehrere Wechsel pro Jahr, Split an der Preisgrenze) · PDF-Verteilung per „Teilen"-Dialog (Web Share API, Fallback Download), kein Mailserver.
+**Bereits entschieden (Round 4–6):** Backend-frei (Fine-grained PAT + privates Daten-Repo `MadCowDevelopment/heizung-data`) · Verteilungs-Schlüssel Default `warm` · Preisstufen datumsgenau („gültig ab", mehrere Wechsel pro Jahr, Split an der Preisgrenze) · PDF-Verteilung per „Teilen"-Dialog (Web Share API, Fallback Download), kein Mailserver · **kein OAuth-Device-Flow** (CORS-Blocker, §2.1) · Einmalige Einrichtung: [`docs/setup.md`](setup.md).
 
 **Noch offen:**
 
-- Fein-grained PAT (nur Daten-Repo) statt Device-Flow → sicherer, aber kein „GitHub-Login" und Token manuell zu pflegen.
+- **Token-Broker (Cloudflare Worker)** als Ausbaupfad, sobald mehrere Geräte oder Personen je ein eigenes Token brauchen (echter Login-Flow, Refresh-Token).
 - Ende-zu-Ende-Verschlüsselung der JSON (WebCrypto-Passphrase) → höchste Datenschutzstufe, Aufwand + Bedienhürde.
 - Ein data-repo vs. mehrere (z. B. je Jahr ein Repo-File) → Historie im Repo reicht.
 - Realtime-Sync (nötig?) oder Polling im 30-s-Takt reicht (nur ein Admin → Polling reicht).
