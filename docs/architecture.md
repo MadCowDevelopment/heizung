@@ -199,7 +199,8 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 - **pdf-lib im Frontend:** Die PDF entsteht im Browser aus den **eingefrorenen** Positionen einer Abrechnung – kein Server-Rendering, keine zusätzlichen Secrets, personenbezogene Daten verlassen das Gerät nicht.
 - **Inhalt Einzel-PDF je Bewohner:** Kopf (Objekt, Zeitraum, Bewohner, Datum), Tabelle (Warmwasser m³ rot, Kaltwasser m³ blau, Energie MWh, Anteil %, Kosten, Abschläge, Saldo), Fuß (Hinweis, Kontakt, Erläuterung der Verteilung). Farbcodierung warm/kalt/Energie wird übernommen.
 - **Sammel-PDF** (alle Bewohner, Archiv) und **CSV-Export** (maschinenlesbar) ergänzend.
-- **Ausgabe:** Browser-Download bzw. „Teilen"-Dialog auf dem Handy (Teilen mit Mail-/Druck-App hängt die Datei als Anhang an → E-Mail ohne Mailserver möglich).
+- **Ausgabe:** primär der **„Teilen"-Dialog des Browsers** (iOS/Android) → die PDF hängt als Anhang an eine beliebige E-Mail-/Druck-/Chat-App des Nutzers; zusätzlich klassischer Download als Datei. Kein Mailserver, keine Fremd-Dienste, keine Datenabgabe an Dritte.
+- **Web Share API Level 2** (`navigator.share({ files: [pdf] })`) – nur mobile Browser; Desktop-Browser ohne Datei-Share → Fallback auf Download (`URL.createObjectURL` + `<a download>`). Feature-Detection statt Annahme.
 - **Briefkopf optional:** Logo/Briefkopf als Bild (lokal im Browser hinterlegt); Textbausteine (Objektname, Ansprechpartner, Hinweistext) aus `einstellungen`.
 - **Vorschau:** vor dem Download kann die PDF in einem Viewer geprüft werden (Blob-URL im Tab / in-app Vorschau).
 
@@ -254,6 +255,10 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 | Repo ist öffentlich | Secret-Scan im CI, keine Daten im Code-Repo, `.gitignore` für lokale Exportdateien |
 
 ## 13. Offene Architektur-Entscheidungen
+
+**Bereits entschieden (Round 4/5):** Backend-frei (GitHub-Login + privates Daten-Repo) · Verteilungs-Schlüssel Default `warm` · Preisstufen datumsgenau („gültig ab", mehrere Wechsel pro Jahr, Split an der Preisgrenze) · PDF-Verteilung per „Teilen"-Dialog (Web Share API, Fallback Download), kein Mailserver.
+
+**Noch offen:**
 
 - Fein-grained PAT (nur Daten-Repo) statt Device-Flow → sicherer, aber kein „GitHub-Login" und Token manuell zu pflegen.
 - Ende-zu-Ende-Verschlüsselung der JSON (WebCrypto-Passphrase) → höchste Datenschutzstufe, Aufwand + Bedienhürde.

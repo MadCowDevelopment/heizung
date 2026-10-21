@@ -84,15 +84,15 @@ Ein gemeinschaftlicher Energie-/Warmwasserzähler wird **proportional zum Wasser
 `anteil_i = wasser_i / Σ wasser`, `energie_i = Δ(E) × anteil_i`.
 *Beispiel:* Δ(E) = 3 MWh, Warmwasser Δ = 2 m³ und 1 m³ → 2 MWh und 1 MWh.
 
-**Verteilungs-Schlüssel** (Settings, Default `warm`):
+**Verteilungs-Schlüssel** (Settings, **Default `warm` – festgelegt**):
 
 | Modus | Schlüssel |
 |---|---|
-| `warm` (Default) | Warmwasserzähler (rot) |
+| `warm` (**Default**) | Warmwasserzähler (rot) – energetisch passende Basis |
 | `warm+kalt` | Summe warm (rot) + kalt (blau) |
 | `kalt` | Kaltwasserzähler (blau) |
 
-Sonderfall: Ein Bewohner hat im Zeitraum **keinen** Zähler des aktiven Schlüssels → für diesen Bewohner wird ersatzweise auf den anderen Wasserzähler umgeschaltet und die Abweichung sichtbar markiert (kein stiller Ausschluss).
+Sonderfall: Ein Bewohner hat im Zeitraum **keinen** Zähler des aktiven Schlüssels → für diesen Bewohner wird ersatzweise auf den anderen Wasserzähler umgeschaltet und die Abweichung sichtbar markiert (kein stiller Ausschluss). Bei Default `warm` ist das der Fall „Bewohner hat nur Kaltwasserzähler" → Verteilung nach Kaltwasser, Position wird mit Hinweis markiert.
 Sonderfall `Σ wasser = 0` → „keine Verteilungsbasis": Admin-Rückfrage, Vorschlag gleichmäßige Aufteilung (mit sichtbarem Hinweis).
 Wasserzähler, die selbst von anderen Zählern enthalten werden, zählen über R2 mit.
 
@@ -117,16 +117,16 @@ Beträge kaufmännisch auf 2 Nachkommastellen. Die Summe der Einzelpositionen mu
 **R8 – Unvollständige / unplausible Daten**
 Fehlende Ablesungen, negative Deltas (Zählerwechsel/Fehlablesung) und unplausible Sprünge (> definierter Faktor, z. B. 3× Median der letzten Perioden) werden markiert und verhindern das **Abschließen** der Abrechnung (Warnung mit Freigabe-Möglichkeit, keine harte Blockade).
 
-**R9 – Preis-Historie**
-Preise gelten **ab einem Datum** (`gueltigAb`). Jede Ablesung speichert den zu diesem Zeitpunkt gültigen Preis als Snapshot (`preisMwhGenutzt`) → historische Berechnungen bleiben reproduzierbar, auch wenn der Preis später geändert wird.
-Mindestens **jährliche** Preise (z. B. 0,10 € für 2026), optional mehrere Preisstufen innerhalb eines Jahres. Liegt eine Periode über einen Preiswechsel, wird sie an der Preisgrenze geteilt und anteilig bewertet.
+**R9 – Preis-Historie (Preisstufen mit Datum)**
+Preise gelten **ab einem Datum** (`gueltigAb`) – **datumsgenaue Preisstufen, mehrere Wechsel pro Jahr möglich** (festgelegt). Jede Ablesung speichert den zu diesem Zeitpunkt gültigen Preis als Snapshot (`preisMwhGenutzt`) → historische Berechnungen bleiben reproduzierbar, auch wenn der Preis später geändert wird.
+Liegt eine Periode über einen Preiswechsel, wird sie an der Preisgrenze geteilt und anteilig gewichtet (R9-Split in der Kostenberechnung).
 
 **R10 – PDF-Ausgabe der Abrechnung**
 Die Abrechnung wird **clientseitig** (im Browser, pdf-lib) erzeugt – kein Server, kein E-Mail-Versand, keine fremden Geheimnisse.
 - **Einzel-PDF je Bewohner** (Hauptprodukt): Kopf (Objekt, Zeitraum, Bewohner, Datum), Tabelle (Warmwasser m³ rot, Kaltwasser m³ blau, Energie MWh, Anteil %, Kosten, Abschläge, Saldo), Fuß (Hinweis, Kontakt, Erläuterung zur Verteilung).
 - **Sammel-PDF** aller Bewohner (Archiv für den Admin) und **CSV-Export** als maschinenlesbare Ergänzung.
 - Erzeugung im Browser → personenbezogene Daten verlassen das Gerät nicht; PDF enthält den Stand der **eingefrorenen** Abrechnungspositionen (nicht neu berechnet).
-- Ausgabe über Browser-„Speichern"/„Teilen" (mobile OS-Dialog) bzw. Download; keine Historie/State am Server nötig.
+- **Ausgabe:** Über den **„Teilen"-Dialog des Browsers** (iOS/Android) an ein beliebiges E-Mail-Programm bzw. Druck-/Chat-App; zusätzlich klassischer Download als Datei. Die App verschickt selbst **keine** E-Mails (kein Mailserver, keine Fremd-Dienste).
 
 **R11 – Startablesungen & rückdatierte Erfassung**
 Beim Einrichten der App können **Startablesungen** (Zähler + Datum + Startstand) importiert werden (CSV/Tabellen-Paste oder manuell). Ablesungen dürfen **beliebig in der Vergangenheit** erfasst werden (Datum in S3 frei wählbar, auch mehrere Zähler an verschiedenen Tagen). Bereits erfasste Tage werden beim erneuten Erfassen überschrieben (mit Bestätigung) oder als Korrektur protokolliert.
@@ -280,16 +280,16 @@ Ablage als **eine JSON-Datei** in einem privaten GitHub-Repo (`data/state.json`)
 
 | # | Frage | Vorschlag |
 |---|---|---|
-| 1 | Wie wird die PDF verteilt – Handout, E-Mail ohne Anhang, oder Ausdruck im Hausflur? | PDF-Download je Bewohner; E-Mail manuell mit PDF-Anhang (kein Mailserver nötig) |
+| 1 | Wie wird die PDF verteilt? | **entschieden:** pro Bewohner PDF → „Teilen"-Dialog des Browsers (E-Mail-/Druck-/Chat-App des Nutzers); Download als Datei zusätzlich. Sammel-PDF + CSV als Archiv |
 | 2 | Sammel-PDF als Archiv für den Admin zusätzlich? | ja |
-| 3 | Verteilungs-Schlüssel: nur Warmwasser, oder warm+kalt? | Default warm; umschaltbar in Settings |
+| 3 | Verteilungs-Schlüssel: nur Warmwasser, oder warm+kalt? | **entschieden:** Default `warm` (Fallback auf kalt, sichtbar markiert); umschaltbar in Settings |
 | 4 | Enthält die Abrechnung auch Trinkwasser-Kosten, wenn später ein Preis gepflegt wird? | ja, Preis-Feld existiert, Default 0 € |
 | 5 | Abschlagsform: monatlicher Betrag oder Jahresbetrag (÷12)? | beide, Standard monatlich |
 | 6 | Zählerwechsel-Behandlung: alter Zähler bis Wechsel gültig, neuer mit Startstand? | ja, Startstand-Pflicht beim neuen Zähler |
 | 7 | Bewohner ohne eigene Zähler (z. B. untervermietet) | von der Verteilung ausgenommen + in der Abrechnung sichtbar markiert |
 | 8 | Währung EUR; CHF später | EUR |
-| 9 | Preiskonvention: pro Kalenderjahr oder Preisstufen mit Datum? | beides, Snapshot pro Ablesung |
+| 9 | Preiskonvention: pro Kalenderjahr oder Preisstufen mit Datum? | **entschieden:** datumsgenaue Preisstufen („gültig ab"), mehrere Wechsel pro Jahr; Perioden werden an der Grenze geteilt |
 | 10 | Startablesungen: als Import-Datei (CSV) oder manuell in der UI? | beide (CSV-Paste + manuell) |
-| 11 | Zugriffsschutz der App | **GitHub-Login** (OAuth Device-Flow) – kein eigenes Passwort, 2FA des GitHub-Kontos wirkt automatisch |
-| 12 | Cloud-Save von mehreren Geräten nötig oder reicht ein Gerät + Export/Import? | **Cloud-Save via privates GitHub-Daten-Repo** (empfohlen) – zusätzlich lokale Kopie + Export/Import |
+| 11 | Zugriffsschutz der App | **entschieden:** GitHub-Login (OAuth Device-Flow) – kein eigenes Passwort, 2FA des GitHub-Kontos wirkt automatisch |
+| 12 | Cloud-Save von mehreren Geräten nötig oder reicht ein Gerät + Export/Import? | **entschieden:** Cloud-Save via privates GitHub-Daten-Repo + lokale Kopie + Export/Import |
 | 13 | Daten-Repo: eigenes privates Repo (z. B. `MadCowDevelopment/heizung-data`) oder im Code-Repo (nicht möglich, öffentlich)? | eigenes privates Daten-Repo |
