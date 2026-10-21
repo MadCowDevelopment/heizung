@@ -14,9 +14,9 @@ Web-App (mobil-first) für eine Wohngemeinschaft / Haus mit gemischter Zählerst
 3. Kosten je Bewohner berechnen (Preis/MWh, mit Preis-Historie).
 4. Optionale Abschläge führen (monatlich oder Jahresbetrag).
 5. **Jahresabrechnung:** Betreiberrechnung (Ist-Betrag) auf Bewohner nach Verbrauchsanteil verteilen, Abschläge verrechnen → Nachzahlung/Auszahlung.
-6. **Versand:** Bewohner erhalten per **E-Mail** ihre Abrechnung (Zusammenfassung + PDF); nur der Admin arbeitet in der App.
+6. **Ausgabe:** Die Abrechnung wird als **PDF** erzeugt (je Bewohner einzeln + gesammelt) und vom Admin verteilt; nur der Admin arbeitet in der App.
 
-**In Scope:** Warmwasser-/Energieverteilung, Wasser als Verteilungsbasis (warm/kalt getrennt), Abschläge, Jahresabrechnung, E-Mail-Versand, Export/Import, Offline-Fähigkeit.
+**In Scope:** Warmwasser-/Energieverteilung, Wasser als Verteilungsbasis (warm/kalt getrennt), Abschläge, Jahresabrechnung, PDF-Ausgabe, Export/Import, Offline-Fähigkeit.
 
 **Später ergänzbar (bewusst offen gelassen):** Wasserpreis pro m³ (Preisfeld existiert, Default 0 €), weitere Preisbestandteile, Bewohner-Self-Service-Portal, Mahnwesen, Heizkostenabrechnung nach §556 BGB.
 
@@ -28,15 +28,14 @@ Web-App (mobil-first) für eine Wohngemeinschaft / Haus mit gemischter Zählerst
 
 | Entität | Felder |
 |---|---|
-| **Bewohner** | `id`, `name`, `email`, `notiz`, `aktiv`, `emailVersandAktiv`, `farbe` (optional, Listenfarbe) |
+| **Bewohner** | `id`, `name`, `email` (optional, nur Kontakt), `notiz`, `aktiv`, `farbe` (optional, Listenfarbe) |
 | **Zähler** | `id`, `bezeichnung`, `typ` (`energie` \| `wasser_warm` \| `wasser_kalt`), `einheit`, `bewohnerId` (null = Gemeinschafts-/Gesamtzähler), `enthaeltIds[]`, `ablesestelle`, `aktiv`, `startStand` (optional) |
 | **Ablesung** | `id`, `zaehlerId`, `datum` (ISO-Datum), `stand` (Zahl), `notiz`, `unsicher` (bool), `foto` (optional Beleg), `preisMwhGenutzt` (Snapshot, s. R9), `createdAt`, `updatedAt` |
 | **Preis** | `id`, `gueltigAb` (ISO-Datum), `preisMWh`, `preisM3` (Default 0), `notiz` |
 | **AbschlagPlan** | `id`, `bewohnerId`, `betrag`, `rhythmus` (`monatlich` \| `jaehrlich`), `aktiv` |
 | **Zahlung** | `id`, `bewohnerId`, `betrag`, `faelligAm`, `bezahltAm` (optional), `notiz` (z. B. „Abschlag 03/2026") |
 | **Abrechnung** | `id`, `jahr`, `zeitraum` (von/bis), `betreiberBetrag`, `betreiberHinweis`, `status` (`entwurf` \| `versendet` \| `beglichen`), `positionen[]` |
-| **EmailVorgang** | `id`, `abrechnungId`, `bewohnerId`, `empfaenger`, `betreff`, `status` (`entwurf` \| `gesendet` \| `fehler`), `gesendetAm`, `fehlerText`, `providerId` |
-| **Einstellungen** | `preisDefaults` (siehe Preis), `verteilSchluessel`, `waehrung`, `absenderName`, `emailTemplate`, `schemaVersion` |
+| **Einstellungen** | `preisDefaults` (siehe Preis), `verteilSchluessel`, `waehrung`, `objektName`, `ansprechpartner`, `pdfHinweis`, `schemaVersion` |
 
 ### 2.2 Zählertypen & Farbkodierung
 
@@ -57,7 +56,6 @@ Ablesung ──n:1──> Zähler                  (1 Ablesung je Zähler je Tag
 Preis ──gueltigAb──> Ablesungen            (Snapshot pro Ablesung)
 AbschlagPlan ──n:1──> Bewohner;  Zahlung ──n:1──> Bewohner
 Abrechnung ──1:n──> Position ──n:1──> Bewohner
-Abrechnung ──1:n──> EmailVorgang ──n:1──> Bewohner
 ```
 
 ### 2.4 Abrechnungsposition
@@ -123,10 +121,12 @@ Fehlende Ablesungen, negative Deltas (Zählerwechsel/Fehlablesung) und unplausib
 Preise gelten **ab einem Datum** (`gueltigAb`). Jede Ablesung speichert den zu diesem Zeitpunkt gültigen Preis als Snapshot (`preisMwhGenutzt`) → historische Berechnungen bleiben reproduzierbar, auch wenn der Preis später geändert wird.
 Mindestens **jährliche** Preise (z. B. 0,10 € für 2026), optional mehrere Preisstufen innerhalb eines Jahres. Liegt eine Periode über einen Preiswechsel, wird sie an der Preisgrenze geteilt und anteilig bewertet.
 
-**R10 – E-Mail-Versand der Abrechnung**
-Pro Bewohner wird eine E-Mail erzeugt: Betreff + Kurzfassung (Verbrauch, Anteil, Betrag, Abschläge, Saldo/Nachzahlung) + **PDF** der Abrechnung als Anhang (alternativ Link).
-Status je Empfänger wird nachverfolgt (`entwurf`/`gesendet`/`fehler`), erneutes Senden möglich, Versandprotokoll einsehbar. Idempotenz: eine Abrechnung + Bewohner = max. 1 Versand, außer bewusst „erneut senden".
-Der Versand läuft **serverseitig** (E-Mail-API + PDF-Erzeugung), nicht direkt aus dem Browser (Geheimnisse bleiben serverseitig).
+**R10 – PDF-Ausgabe der Abrechnung**
+Die Abrechnung wird **clientseitig** (im Browser, pdf-lib) erzeugt – kein Server, kein E-Mail-Versand, keine fremden Geheimnisse.
+- **Einzel-PDF je Bewohner** (Hauptprodukt): Kopf (Objekt, Zeitraum, Bewohner, Datum), Tabelle (Warmwasser m³ rot, Kaltwasser m³ blau, Energie MWh, Anteil %, Kosten, Abschläge, Saldo), Fuß (Hinweis, Kontakt, Erläuterung zur Verteilung).
+- **Sammel-PDF** aller Bewohner (Archiv für den Admin) und **CSV-Export** als maschinenlesbare Ergänzung.
+- Erzeugung im Browser → personenbezogene Daten verlassen das Gerät nicht; PDF enthält den Stand der **eingefrorenen** Abrechnungspositionen (nicht neu berechnet).
+- Ausgabe über Browser-„Speichern"/„Teilen" (mobile OS-Dialog) bzw. Download; keine Historie/State am Server nötig.
 
 **R11 – Startablesungen & rückdatierte Erfassung**
 Beim Einrichten der App können **Startablesungen** (Zähler + Datum + Startstand) importiert werden (CSV/Tabellen-Paste oder manuell). Ablesungen dürfen **beliebig in der Vergangenheit** erfasst werden (Datum in S3 frei wählbar, auch mehrere Zähler an verschiedenen Tagen). Bereits erfasste Tage werden beim erneuten Erfassen überschrieben (mit Bestätigung) oder als Korrektur protokolliert.
@@ -149,8 +149,8 @@ Beim Einrichten der App können **Startablesungen** (Zähler + Datum + Startstan
 - **Anforderung:** Hochformat, eine Hand bedienbar, große Tap-Flächen, `inputmode="numeric"`, keine Einheiten-Egingabe, kein Verlust bei App-Wechsel (Entwurf lokal gespeichert).
 
 ### S4 – Bewohner
-- **Anzeige:** Liste (Name, E-Mail, Zähler mit Farben, Abschlag, Saldo letzte Abrechnung).
-- **Operationen:** Bewohner anlegen/bearbeiten/deaktivieren, E-Mail-Adresse pflegen (Pflicht für Versand), Zähler zuweisen/entfernen, Abschlag planen, Detailansicht (Verbrauchsverlauf, Abrechnungen, Zahlungen, E-Mails).
+- **Anzeige:** Liste (Name, Zähler mit Farben, Abschlag, Saldo letzte Abrechnung).
+- **Operationen:** Bewohner anlegen/bearbeiten/deaktivieren, Kontakt (E-Mail/Telefon) pflegen, Zähler zuweisen/entfernen, Abschlag planen, Detailansicht (Verbrauchsverlauf, Abrechnungen, Zahlungen, PDF-Download der Abrechnung).
 
 ### S5 – Verbrauch & Verteilung
 - **Anzeige:** Zeitraum wählen (Jahr / benutzerdefiniert / seit letzter Ablesung) → Tabelle je Zähler (Startstand, Endstand, Δ, enthaltene Abzüge) und Tabelle je Bewohner (Warmwasser m³ rot, Kaltwasser m³ blau, Energie MWh, Anteil %, Kosten) + Summen-/Plausibilitätscheck.
@@ -162,23 +162,23 @@ Beim Einrichten der App können **Startablesungen** (Zähler + Datum + Startstan
 
 ### S7 – Jahresabrechnung
 - **Anzeige:** Jahr wählen → Operatorbetrag eingeben (Betrag oder Ist-MWh × Preis) → Vorschau je Bewohner (theoretisch vs. verteilt, Abschläge, Saldo) + Summencheck + Abweichungshinweis.
-- **Operationen:** Betreiberbetrag + Hinweis erfassen, Verteilung neu berechnen, Entwurf speichern, **E-Mail-Versand**: einzelner Empfänger oder alle (Vorschau der E-Mail inkl. PDF), Versandstatus je Empfänger, erneutes Senden, Fehlerprotokoll, als bezahlt markieren, Einzel-PDF/CSV je Bewohner exportieren, Gesamtdokument exportieren.
+- **Operationen:** Betreiberbetrag + Hinweis erfassen, Verteilung neu berechnen, Entwurf speichern, **PDF je Bewohner erzeugen** (Vorschau im Viewer, dann Speichern/Teilen), **Sammel-PDF** aller Bewohner, CSV-Export, Positionen einfrieren („Abrechnung abschließen"), Statuspflege (offen / verteilt / bezahlt).
 
 ### S8 – Einstellungen
-- **Operationen:** **Preise** (Preis-Historie: „gültig ab", MWh-Preis, optionaler m³-Preis), **Verteilungs-Schlüssel** (warm / warm+kalt / kalt), Standard-Preis MWh, Währung, **Admin-Login** (E-Mail + Passwort ändern, 2FA optional), **E-Mail** (Absendername, Betreff-Template, Text-Template, Testversand), Export/Import (JSON mit `schemaVersion`, CSV), Komplettlöschung, Impressum/Datenschutz.
+- **Operationen:** **Preise** (Preis-Historie: „gültig ab", MWh-Preis, optionaler m³-Preis), **Verteilungs-Schlüssel** (warm / warm+kalt / kalt), Standard-Preis MWh, Währung, **Admin-Login** (E-Mail + Passwort ändern, 2FA optional), **PDF** (Objektbezeichnung, Ansprechpartner, Hinweistext, Logo/Briefkopf optional), Export/Import (JSON mit `schemaVersion`, CSV), Komplettlöschung, Impressum/Datenschutz.
 
 ### S9 – Status/Fehler (global)
-Sync-/Versandfehler-Banner, Offline-Hinweis, Validierungs- und Plausibilitäts-Markierungen, Wiederherstellen nach Fehlern, Fehlerprotokoll (E-Mail-Versand).
+Sync-Fehler-Banner, Offline-Hinweis, Validierungs- und Plausibilitäts-Markierungen, Wiederherstellen nach Fehlern.
 
 ---
 
 ## 5. Nicht-funktionale Anforderungen
 
 - **Mobil-first**, PWA-installierbar, offline-fähige Eingabe (lokale Queue) mit Nachsenden.
-- **Statisches Frontend auf GitHub Pages**; Datenspeicherung + E-Mail über separates Backend (siehe Architektur).
-- **Admin-only-Zugriff:** E-Mail+Passwort-Login; Bewohner haben **keinen** Login, sie erhalten E-Mails. Geschützte Seiten/Routen; Server erzwingt die Rechte (nicht nur UI).
+- **Statisches Frontend auf GitHub Pages**; Datenspeicherung über ein separates Backend (siehe Architektur).
+- **Admin-only-Zugriff:** E-Mail+Passwort-Login; Bewohner haben **keinen** Login, sie erhalten die PDF. Geschützte Seiten/Routen; Server erzwingt die Rechte (nicht nur UI).
 - **Personenbezogene Daten** nur im Backend (privates Konto/Projekt, EU-Region), Verschlüsselung in transit/at rest, Export & vollständige Löschung, Backups.
-- **E-Mail-Zustellbarkeit:** Absender-Domain mit SPF/DKIM/DMARC (Voraussetzung für Gmail/Yahoo), Bounce-Handling.
+- **PDF-Erzeugung clientseitig** → keine PDF-/Mail-Dienste, keine zusätzlichen Geheimnisse, Daten verlassen das Gerät nicht.
 - **Sprache:** UI Deutsch (i18n EN vorbereitet), `de-DE`-Format für Datum/Zahl/Währung.
 - **Performance:** < 2 s Ladezeit im Mobilnetz, Bedienung offline nach Erstladen.
 - **Export/Import** (JSON-Backup mit `schemaVersion` + Migrationen) als Notlösung/Umzug.
@@ -199,27 +199,27 @@ Detail: [architecture.md](./architecture.md)
 | Formular/Validierung | **React Hook Form + Zod** | geteilte Schema für UI und Im-/Export |
 | Styling | **Tailwind CSS** | schnelles Mobile-Layout, Design-Tokens für die Farbkodierung |
 | PWA | **vite-plugin-pwa** | Offline-Shell, Install-Prompt |
-| PDF/CSV | clientseitig (pdf-lib / print-CSS) bzw. serverseitig im Backend für den Versand | Bewohner-PDF enthält personenbezogene Daten → wird im Backend erzeugt/versendet |
+| PDF/CSV | **clientseitig** (pdf-lib für PDF, CSV-Export) | PDF enthält personenbezogene Daten → bleibt auf dem Admin-Gerät, kein Versanddienst nötig |
 | i18n | `react-i18next` | de/en |
 | Tests | Vitest (Rechenlogik) + Playwright (Erfassungs- & Login-Flow) | R1–R11 sind das Kernrisiko |
-| Backend | **Cloudflare Workers + D1** (empfohlen) – Alternativ Supabase | löst Datenspeicherung **und** E-Mail-Versand in einer Deployment-Einheit |
+| Backend | **Cloudflare Workers + D1** (empfohlen) – Alternativ Supabase | Datenspeicherung, Admin-Auth, Cloud-Save in einer Deployment-Einheit |
 
-### 6.2 Cloud-Speicher & E-Mail – Optionen
+### 6.2 Cloud-Speicher – Optionen
 
-Da nun E-Mail-Versand mit PDF nötig ist, braucht es zwingend ein Server-Backend (Geheimnisse dürfen nicht im Frontend liegen).
+Ohne E-Mail-Versand braucht es nur Datenspeicherung + Admin-Auth. Das Backend kann deutlich schlanker ausfallen.
 
-| Option | Datenspeicher | Admin-Login | E-Mail-Versand | Aufwand | Passt, wenn… |
-|---|---|---|---|---|---|
-| **Cloudflare Workers + D1** (empfohlen) | eigenes SQLite (D1) | selbst implementiert (Passwort-Hash + Session-Token) | ✅ im selben Worker (Resend/SMTP, PDF via pdf-lib) | mittel (ein TS-Projekt) | volle Kontrolle, ein Deploy, alles gratis bis großzügigem Free-Tier |
-| **Supabase** (Postgres + Auth + Edge Function) | eigener Postgres | ✅ eingebaut (E-Mail/Passwort) | ✅ Edge Function (Resend) | mittel (SQL + RLS + CLI) | SQL/RLS-Funktionswissen vorhanden, Realtime gewünscht |
-| **GitHub-API** (privates Repo) + separater Versand-Worker | privates Repo | Token am Gerät (≈ kein Login) | ⚠️ Worker braucht zusätzlich Repo-PAT | hoch (zwei Systeme) | nur, wenn Cloud-Save ohne eigenes Backend erwünscht ist – **nur für Prototyp** |
-| **Firebase** (Firestore + Functions) | Firestore | Google-Login | ✅ Cloud Function | mittel | Firebase-Ökosystem gewünscht |
-| **Nur Browser** (IndexedDB) | Gerät | PIN | ❌ | keiner | Demo/Prototyp ohne echten Cloud-Save |
+| Option | Datenspeicher | Admin-Login | Aufwand | Passt, wenn… |
+|---|---|---|---|---|
+| **Cloudflare Workers + D1** (empfohlen) | eigenes SQLite (D1) | selbst implementiert (Passwort-Hash + Session-Token) | mittel (ein TS-Projekt) | volle Kontrolle, ein Deploy, kostenlos |
+| **Supabase** (Postgres + Auth) | eigener Postgres | ✅ eingebaut | mittel (SQL + RLS + CLI) | SQL/RLS-Fortgeschrittenheit vorhanden, Realtime gewünscht |
+| **Firebase** (Firestore) | Firestore | Google-Login | mittel | Firebase-Ökosystem gewünscht |
+| **Nur Browser** (IndexedDB) + Export/Import | Gerät | PIN | keiner | Single-Device-Betrieb ohne Cloud-Save |
+| **GitHub-API** (privates Repo) | privates Repo | Token am Gerät (≈ kein Login) | sehr gering | Prototyp mit Cloud-Save ohne Zusatzkonto |
 
 **Empfehlung**
-1. **Cloudflare Workers + D1 + Resend** als Backend: eine Codebasis, ein `wrangler deploy`, D1 als Datenbank, Worker erzeugt das Bewohner-PDF und versendet die E-Mail. Secrets (Resend-Key, Passwort-Hash) nur als Worker-Secrets.
-2. **Alternative Supabase**, wenn SQL/RLS und eingebautes Auth bevorzugt werden (Edge Function für E-Mail).
-3. Im Frontend trotzdem **`StorageAdapter`**-Abstraktion (`list/read/write/delete`), damit der Provider austauschbar bleibt und ein späterer Wechsel (z. B. zu Supabase) nur Konfiguration ist.
+1. **Cloudflare Workers + D1** als Backend: Datenspeicherung, Admin-Auth, Cloud-Save – ein `wrangler deploy`, Secrets nur als Worker-Secrets, alles im kostenlosen Bereich.
+2. **Alternative Supabase**, wenn eingebautes Auth und SQL/RLS bevorzugt werden.
+3. Im Frontend **`StorageAdapter`**-Abstraktion (`list/read/write/delete`), damit der Provider austauschbar bleibt (späterer Wechsel = Konfiguration).
 4. **Immer** lokaler Cache (IndexedDB) + Export/Import (JSON, `schemaVersion`) → App funktioniert offline, Datenverlust ist abgesichert.
 
 ### 6.3 Datenfluss
@@ -233,19 +233,19 @@ flowchart LR
   SYNC --> IDB[(IndexedDB Cache)]
   SYNC --> API[Backend API\n(Worker / Supabase)]
   API --> DB[(D1 / Postgres)]
-  API --> MAIL[E-Mail + PDF\n(Resend)]
-  MAIL --> B[Bewohner]
+  CALC --> PDF[PDF-Erzeugung\nim Browser]
 ```
 
 - **Berechnung als reine Funktionen** (`computePeriod(period, meters, readings, prices)`), testbar, ohne Store/Netz.
 - **Sync-Engine:** lokale Mutation sofort in IndexedDB → Queue → Batch-Upsert mit `updatedAt`; Konflikt Last-Write-Wins je Datensatz; Retry mit Backoff; Status sichtbar.
 - **Auth:** Session-Token im Frontend + serverseitige Prüfung jeder Anfrage; kein Geheimnis im Bundle.
+- **PDF:** entsteht vollständig im Browser aus den eingefrorenen Abrechnungspositionen.
 
 ### 6.4 Umsetzungsschritte
 
 1. **M0 Statischer Prototyp:** Domänenmodell + Rechenkern (R1–R11) + Unit-Tests; S2/S3/S4 mit lokalem Adapter; Startablesungen-Import.
 2. **M1 Backend:** Worker + D1 + Auth + API + Sync-Engine + StorageAdapter; S5/S6.
-3. **M2 Abrechnung & Versand:** S7 (Betreiberbetrag, Verteilung, Abschläge, PDF), E-Mail-Versand mit Status, Vorlagen, Testversand; Export/Import.
+3. **M2 Abrechnung:** S7 (Betreiberbetrag, Verteilung, Abschläge, Einzel-/Sammel-PDF, CSV), Export/Import.
 4. **M3 Politur:** Kamera/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n, GitHub Actions → Pages + Worker-Deploy.
 
 ---
@@ -253,15 +253,14 @@ flowchart LR
 ## 7. Datenmodell (Kurzform)
 
 ```
-bewohner(id, name, email, notiz, aktiv, emailVersandAktiv, farbe, updatedAt)
+bewohner(id, name, email, notiz, aktiv, farbe, updatedAt)
 zaehler(id, bezeichnung, typ, einheit, bewohnerId?, enthaeltIds: json, ablesestelle, aktiv, startStand?, updatedAt)
 ablesung(id, zaehlerId, datum, stand, notiz, unsicher, foto?, preisMwhGenutzt, updatedAt)  # unique(zaehlerId, datum)
 preis(id, gueltigAb, preisMWh, preisM3, notiz, updatedAt)
 abschlag_plan(id, bewohnerId, betrag, rhythmus, aktiv, updatedAt)
 zahlung(id, bewohnerId, betrag, faelligAm, bezahltAm?, notiz, updatedAt)
 abrechnung(id, jahr, von, bis, betreiberBetrag, betreiberHinweis, status, positionen: json, updatedAt)
-email_vorgang(id, abrechnungId, bewohnerId, empfaenger, betreff, status, gesendetAm?, fehlerText?, providerId?, updatedAt)
-einstellungen(id=singleton, verteilSchluessel, waehrung, absenderName, emailBetreff, emailText, updatedAt)
+einstellungen(id=singleton, verteilSchluessel, waehrung, objektName, ansprechpartner, pdfHinweis, updatedAt)
 ```
 
 Alle Tabellen: `id`, `updatedAt`, `deleted` (Soft-Delete), `schemaVersion`.
@@ -272,8 +271,8 @@ Alle Tabellen: `id`, `updatedAt`, `deleted` (Soft-Delete), `schemaVersion`.
 
 | # | Frage | Vorschlag |
 |---|---|---|
-| 1 | E-Mail-Provider (Resend?) und eigene Absender-Domain inkl. SPF/DKIM/DMARC? | Resend + eigene Domain, sonst Gmail blockt Versand |
-| 2 | Sammel-PDF oder Einzel-PDF je Bewohner? | Einzel-PDF je Bewohner (+ optionale Sammel-PDF fürs Archiv) |
+| 1 | Wie wird die PDF verteilt – Handout, E-Mail ohne Anhang, oder Ausdruck im Hausflur? | PDF-Download je Bewohner; E-Mail manuell mit PDF-Anhang (kein Mailserver nötig) |
+| 2 | Sammel-PDF als Archiv für den Admin zusätzlich? | ja |
 | 3 | Verteilungs-Schlüssel: nur Warmwasser, oder warm+kalt? | Default warm; umschaltbar in Settings |
 | 4 | Enthält die Abrechnung auch Trinkwasser-Kosten, wenn später ein Preis gepflegt wird? | ja, Preis-Feld existiert, Default 0 € |
 | 5 | Abschlagsform: monatlicher Betrag oder Jahresbetrag (÷12)? | beide, Standard monatlich |
@@ -283,3 +282,4 @@ Alle Tabellen: `id`, `updatedAt`, `deleted` (Soft-Delete), `schemaVersion`.
 | 9 | Preiskonvention: pro Kalenderjahr oder Preisstufen mit Datum? | beides, Snapshot pro Ablesung |
 | 10 | Startablesungen: als Import-Datei (CSV) oder manuell in der UI? | beide (CSV-Paste + manuell) |
 | 11 | Passwortschutz der App: nur Passwort oder 2FA? | Passwort reicht, 2FA optional |
+| 12 | Cloud-Backend nötig (Cloud-Save von mehreren Geräten) oder reicht ein Gerät + Export/Import? | Backend empfohlen, aber Single-Device wäre deutlich einfacher |

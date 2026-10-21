@@ -17,7 +17,7 @@ Spezifikation erstellt, Implementierung noch offen (offene Punkte in `docs/requi
 | Teil | Ort | Hosting |
 |---|---|---|
 | Frontend (Vite/React/TS, PWA) | `apps/web` | GitHub Pages (statisch) |
-| Backend (Auth, API, D1, E-Mail + PDF) | `apps/api` | Cloudflare Workers + D1 (alt. Supabase) |
+| Backend (Auth, API, D1) | `apps/api` | Cloudflare Workers + D1 (alt. Supabase) |
 
 Die Berechnungslogik (`R0`–`R11`) liegt als reine Funktionen in `apps/web/src/domain` und ist unabhängig vom Store testbar.
 Das Frontend spricht ausschließlich über die `StorageAdapter`-Abstraktion mit dem Backend → Provider-Wechsel bleibt Konfiguration.

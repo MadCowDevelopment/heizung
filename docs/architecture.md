@@ -8,7 +8,7 @@
 Zwei Deployments:
 
 1. **Frontend** – statisch auf GitHub Pages (Vite/React/TS, PWA).
-2. **Backend** – Cloudflare Worker (+ D1) für Datenspeicherung, Admin-Auth und E-Mail-Versand inkl. PDF.
+2. **Backend** – Cloudflare Worker (+ D1) für Datenspeicherung, Admin-Auth und Cloud-Save.
 
 ```
 ┌──────────── Browser / PWA (GitHub Pages) ────────────┐
@@ -21,17 +21,19 @@ Zwei Deployments:
 │ sync/ (Queue, LWW, Retry)  →  idb/ (IndexedDB)      │
 │   ↓                                                 │
 │ api/ (Fetch-Client + Session-Token)                 │
+│   ↓                                                 │
+│ pdf/ (pdf-lib, clientseitig)                        │
 └──────────────────────┬───────────────────────────────┘
                        │ HTTPS + Bearer-Token
 ┌──────────────────────▼───────────────────────────────┐
 │ Cloudflare Worker (TypeScript)                      │
 │  ├─ Auth (Admin-Login, Passwort-Hash, Sessions)      │
 │  ├─ REST-API (CRUD je Entität, Batch-Upsert)         │
-│  ├─ Rechen-/PDF-Endpoint (Abrechnung + PDF)          │
-│  ├─ Mailer (Resend/SMTP) + Templates                │
 │  └─ D1 (SQLite) – alle Tabellen, schemaVersion      │
 └──────────────────────────────────────────────────────┘
 ```
+
+**Kein Mail-Server, kein PDF-Server:** Die PDF entsteht im Browser, die Verteilung erfolgt manuell (Admin hängt das PDF an bzw. druckt es). Damit bleiben Geheimnisse serverseitig und die Anlage deutlich schlanker.
 
 ## 2. Projektstruktur
 
@@ -57,16 +59,14 @@ apps/                     # Monorepo-lite (npm workspaces)
       ui/components/      # ZählerKarte, Eingabefeld, VerteilungsTabelle, …
       theme/              # Farbtokens: warm=rot, kalt=blau, energie=bernstein
       i18n/               # de, en
-  api/                    # Worker → Cloudflare Pages/Workers
+  api/                    # Worker → Cloudflare Workers
     src/
       index.ts            # Router (Hono oder plain fetch)
-      routes/             # auth, meters, readings, residents, settlement, mail
+      routes/             # auth, meters, readings, residents, settlement
       db/                 # D1-Schema + Migrationen
-      mail/               # Resend-Client, Templates
-      pdf/                # pdf-lib Layout
 ```
 
-**Abhängigkeitsregeln:** `domain` importiert nichts außer `domain`. `api` kennt kein Frontend. UI greift über TanStack Query/Hooks auf `api` zu. Rechenlogik ist damit isoliert testbar (Vitest ohne Worker-Setup).
+**Abhängigkeitsregeln:** `domain` importiert nichts außer `domain`. `pdf` importiert nur `domain`-Typen. `api` kennt kein Frontend. UI greift über TanStack Query/Hooks auf `api` zu. Rechenlogik ist damit isoliert testbar (Vitest ohne Worker-Setup).
 
 ## 3. Datenmodell (D1 / Postgres)
 
@@ -86,10 +86,8 @@ abschlag_plan(id, bewohner_id, betrag REAL, rhythmus TEXT CHECK(rhythmus IN ('mo
 zahlung(id, bewohner_id, betrag REAL, faellig_am TEXT, bezahlt_am TEXT NULL, notiz, updated_at, deleted)
 abrechnung(id, jahr INT, von TEXT, bis TEXT, betreiber_betrag REAL, betreiber_hinweis,
            status TEXT, positionen TEXT /*JSON*/, updated_at, deleted)
-email_vorgang(id, abrechnung_id, bewohner_id, empfaenger, betreff, status TEXT,
-              gesendet_am TEXT NULL, fehler_text TEXT NULL, provider_id TEXT NULL, updated_at, deleted)
-einstellungen(id='singleton', verteil_schluessel TEXT, waehrung TEXT, absender_name TEXT,
-              email_betreff TEXT, email_text TEXT, verteiler_adresse TEXT, updated_at)
+einstellungen(id='singleton', verteil_schluessel TEXT, waehrung TEXT, objekt_name TEXT,
+              ansprechpartner TEXT, pdf_hinweis TEXT, updated_at)
 admin_user(id, email, passwort_hash, passwort_salt, mfa_secret NULL, created_at, updated_at)
 session(id, admin_id, token_hash, expires_at, created_at)
 ```
@@ -100,7 +98,7 @@ session(id, admin_id, token_hash, expires_at, created_at)
 - `ablesung.preis_mwh_genutzt` = Preis-Snapshot (R9) → historische Berechnungen bleiben reproduzierbar.
 - Fotos/Belege: **nicht** in D1 (Größe) → R2-Storage (Cloudflare R2) oder nur optional; alternativ nur lokal auf dem Gerät. Datenschutz: Beweisfotos gehören nicht in ein öffentliches Repo.
 - `abrechnung.positionen` als JSON: eingefrorene Positionen einer abgeschlossenen Abrechnung dürfen sich nicht durch spätere Korrekturen verändern → Snapshot statt Neuberechnung.
-- Indizes: `ablesung(zaehler_id, datum)`, `zahlung(bewohner_id, faellig_am)`, `email_vorgang(abrechnung_id)`.
+- Indizes: `ablesung(zaehler_id, datum)`, `zahlung(bewohner_id, faellig_am)`.
 
 ## 4. Berechnungs-Kern (R0–R11) – Detail
 
@@ -138,48 +136,47 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 
 ## 5. Cloud-Backend: Optionen im Detail
 
-### 5.1 Cloudflare Workers + D1 + Resend (empfohlen)
+### 5.1 Cloudflare Workers + D1 (empfohlen)
 
-- **Warum:** Ein Deployment deckt Datenspeicherung **und** E-Mail-Versand ab. Secrets bleiben serverseitig. Der Free-Tier reicht für eine Wohngemeinschaft; D1 ist SQLite (einfach zu lesen, zu backuppen, zu migrieren).
+- **Warum:** Ein Deployment deckt Datenspeicherung, Admin-Auth und Cloud-Save ab. Secrets bleiben serverseitig. Der Free-Tier reicht für eine Wohngemeinschaft; D1 ist SQLite (einfach zu lesen, zu backuppen, zu migrieren).
 - **Auth:** Admin-Login mit E-Mail + Passwort (Argon2id oder scrypt via `crypto.subtle`/WebCrypto bzw. `bcrypt`), Session-Token (Bearer, kurzlebig, in `httpOnly` Cookie wenn möglich, sonst `localStorage` + kurze TTL). Rate-Limit beim Login, 2FA optional (TOTP).
 - **API:** REST, JSON, `Authorization: Bearer <token>`; je Entität `GET /list`, `POST /upsert` (Batch mit `updatedAt`), `POST /delete` (Soft-Delete). Für unsyncte Offline-Änderungen: Batch-Upsert in einem Request.
-- **E-Mail:** `POST /abrechnungen/:id/versenden` → Worker erzeugt PDF (pdf-lib) + Text, ruft Resend auf, schreibt `email_vorgang` (Status, `providerId`, `gesendet_am`). Testversand an die eigene Adresse. Wiederholung: Button „erneut senden" → neue `email_vorgang`-Zeile.
-- **Zustellbarkeit:** eigene Domain mit SPF/DKIM/DMARC (bei Gmail/Yahoo Pflicht), sonst Versand über die Resend-Testdomain mit Hinweis „nur an eigene Adresse".
-- **Kosten:** Worker + D1 + R2 im Free-Tier gratis (Limit beachten), Resend free Tier 3.000 Mails/Monat, Domain ~10 €/Jahr.
+- **E-Mail:** entfällt – die Abrechnung wird als PDF im Browser erzeugt und vom Admin manuell verteilt.
+- **PDF:** entfällt serverseitig – pdf-lib läuft im Frontend.
+- **Kosten:** Worker + D1 im Free-Tier gratis (Limit beachten), keine Mail-/PDF-Dienste nötig.
 
-### 5.2 Supabase (Postgres + Auth + Edge Function) – Alternative
+### 5.2 Supabase (Postgres + Auth) – Alternative
 
-- Auth eingebaut (E-Mail/Passwort), RLS, Realtime; E-Mail via Edge Function (Resend), PDF via pdf-lib in der Function.
+- Auth eingebaut (E-Mail/Passwort), RLS, Realtime.
 - Passt, wenn SQL/RLS-Fortgeschrittenheit vorhanden ist oder Realtime gewünscht wird.
-- Nachteile: mehr Konfiguration (Schema, RLS-Policies, Service/Anon-Keys, Supabase CLI), Preis-/Projektpausen, Edge-Function-Limits.
+- Nachteile: mehr Konfiguration (Schema, RLS-Policies, Service-/Anon-Keys, Supabase CLI), Preis-/Projektpausen.
 
-### 5.3 GitHub-API + separater Versand-Worker
+### 5.3 GitHub-API (privates Repo)
 
 - Daten in `data/state.json` eines privaten Repos (Commits = Audit-Trail), Token (fine-grained, nur dieses Repo) am Gerät.
-- Für E-Mail-Versand wird zusätzlich ein Worker/Function mit Repo-PAT gebraucht → zwei Systeme, mehr Betriebsaufwand.
-- **Nur für Prototyp**, sobald Admin-Login und Versand produktiv sind, überwiegt Cloudflare/Supabase.
+- Vorteil: kein Zusatzkonto, sofort umsetzbar. **Nachteil:** kein echter Admin-Login (Token am Gerät = Vollzugriff) → nur für Prototyp oder Single-Admin im privaten Umfeld.
 
-### 5.4 Firebase (Firestore + Cloud Functions)
+### 5.4 Firebase (Firestore)
 
-- Firestore mit Security Rules, Google-Login, Functions für Mail. Vendor-Lock-in, Regeln in eigener DSL.
+- Firestore mit Security Rules, Google-Login, Realtime. Vendor-Lock-in, Regeln in eigener DSL.
 
-### 5.5 Nur Browser (IndexedDB)
+### 5.5 Nur Browser (IndexedDB) + Export/Import
 
-- Kein echter Cloud-Save, kein Versand → nur Demo/Prototyp.
+- Kein echter Cloud-Save, kein Login → nur Demo/Prototyp. **Variante:** wenn nur ein Gerät genutzt wird, reicht das als „Backup-Umfeld" (Export vor jedem Abschluss).
 
 ### 5.6 Entscheidung
 
-| Kriterium | CF Workers + D1 | Supabase | GitHub + Worker | Firebase | Nur Browser |
+| Kriterium | CF Workers + D1 | Supabase | GitHub-API | Firebase | Nur Browser |
 |---|---|---|---|---|---|
-| Setup-Aufwand | mittel | mittel | hoch | mittel | keiner |
+| Setup-Aufwand | mittel | mittel | sehr gering | mittel | keiner |
 | Admin-Login | selbst (muss gebaut werden) | eingebaut | ≈ Token | eingebaut | PIN |
-| E-Mail + PDF im selben System | ✅ | ✅ (Edge Function) | ⚠️ | ✅ | ❌ |
+| Cloud-Save | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Kostenlos für diesen Fall | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Datenschutz/EU | ✅ eigenes Konto | ✅ eigenes Projekt | ✅ | ✅ | ✅ lokal |
-| Realtime | ⚠️ (Polling/Durable Objects) | ✅ | ❌ | ✅ | ❌ |
-| Ein Deploy | ✅ | ⚠️ (DB + Function + Auth) | ❌ | ⚠️ | – |
+| Realtime | ⚠️ (Polling) | ✅ | ❌ | ✅ | ❌ |
+| Ein Deploy | ✅ | ⚠️ (DB + Auth) | ✅ | ⚠️ | – |
 
-**Empfehlung:** **Cloudflare Workers + D1 + Resend.** Ein Deploy, volle Kontrolle, Secrets serverseitig, alles im kostenlosen Bereich. Der Frontend-Adapter (`StorageAdapter`) hält den Wechsel zu Supabase später offen.
+**Empfehlung:** **Cloudflare Workers + D1.** Ein Deploy, volle Kontrolle, Secrets serverseitig, alles im kostenlosen Bereich. Der Frontend-Adapter (`StorageAdapter`) hält den Wechsel zu Supabase später offen.
 
 > Datenschutz: Namen/E-Mails sind personenbezogene Daten → eigenes Konto/Projekt (EU-Region), niemals Shared-Instance, Export & vollständige Löschung anbieten, Backups des eigenen Kontos.
 
@@ -197,15 +194,16 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 - Passwort-Hash: scrypt/Argon2id mit Salt; keine Klartext-Passwörter in der DB; `session`-Tabelle mit `expires_at`.
 - Login-Seite geschützt; alle API-Routen prüfen den Bearer-Token; Frontend-Routen per `ProtectedRoute`.
 - 2FA (TOTP) optional als Upgrade in S8.
-- **Kein** Bewohner-Login (Entscheidung) → Bewohner erhalten ausschließlich E-Mails mit PDF.
+- **Kein** Bewohner-Login (Entscheidung) → Bewohner erhalten die PDF, die der Admin verteilt.
 
-## 8. E-Mail & PDF
+## 8. PDF-Erzeugung (clientseitig)
 
-- **Inhalt E-Mail:** Betreff (`Heizkostenabrechnung {jahr} – {bewohner}`), Kurzfassung (Zeitraum, Warmwasser/Kaltwasser in m³, Energieanteil MWh, Anteil %, Rechnungsbetrag, Abschläge, Saldo/Nachzahlung), Hinweis (z. B. Preisabweichung), Anhang: PDF.
-- **PDF (pdf-lib, serverseitig):** Kopf (Objekt, Zeitraum, Absender), Tabelle (Verbrauch, Anteil, Kosten, Abschläge, Saldo), Fuß (Datum, Kontakt, Hinweis zur Abrechnung). Farbcodierung warm/kalt/Energie wird im PDF übernommen.
-- **Templates:** Betreff- und Text-Template in `einstellungen` mit Platzhaltern (`{{name}}`, `{{jahr}}`, `{{betrag}}`, `{{saldo}}`, `{{verbrauch}}`).
-- **Versandstatus je Empfänger** in S7 sichtbar; Fehler (Bounce, invalid address) werden protokolliert; Bewohner ohne E-Mail-Adresse werden markiert („kein Empfänger").
-- **DSGVO/Praxis:** E-Mail enthält personenbezogene Daten → Transportverschlüsselung (TLS), keine Empfängerliste im Repo, Löschfristen/Export/Archivierung anbieten.
+- **pdf-lib im Frontend:** Die PDF entsteht im Browser aus den **eingefrorenen** Positionen einer Abrechnung – keine Server-Render-Logik, keine zusätzlichen Secrets, personenbezogene Daten verlassen das Gerät nicht.
+- **Inhalt Einzel-PDF je Bewohner:** Kopf (Objekt, Zeitraum, Bewohner, Datum), Tabelle (Warmwasser m³ rot, Kaltwasser m³ blau, Energie MWh, Anteil %, Kosten, Abschläge, Saldo), Fuß (Hinweis, Kontakt, Erläuterung der Verteilung). Farbcodierung warm/kalt/Energie wird übernommen.
+- **Sammel-PDF** (alle Bewohner, Archiv) und **CSV-Export** (maschinenlesbar) ergänzend.
+- **Ausgabe:** Browser-Download bzw. „Teilen"-Dialog auf dem Handy (Teilen mit Mail-/Druck-App hängt die Datei als Anhang an → E-Mail ohne Mailserver möglich).
+- **Briefkopf optional:** Logo/Briefkopf als Bild (lokal im Browser hinterlegt oder als Data-URL im Export); Textbausteine (Objektname, Ansprechpartner, Hinweistext) aus `einstellungen`.
+- **Vorschau:** vor dem Download kann die PDF in einem Viewer geprüft werden (Blob-URL im Tab / in-app Vorschau).
 
 ## 9. Kamera/OCR (optional)
 
@@ -232,8 +230,7 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
   - Basis-Pfad: `vite.config.ts` mit `base: '/heizung/'` (Repo-Name!) → `VITE_BASE_PATH`.
   - Router: **HashRouter** (robust bei GitHub Pages ohne 404-Fallback) oder BrowserRouter + `404.html`-Copy.
   - `VITE_API_BASE_URL` (URL des Workers) wird beim Build injiziert – kein Secret.
-- **Backend (Cloudflare):** `wrangler deploy` (manuell oder via GitHub Action mit `CLOUDFLARE_API_TOKEN`-Secret); Secrets: `wrangler secret put RESEND_API_KEY`, `SESSION_SECRET`, `ADMIN_PASSWORD_HASH`.
-- **Domain/Sender:** eigene Domain → SPF/DKIM/DMARC bei Resend einrichten.
+- **Backend (Cloudflare):** `wrangler deploy` (manuell oder via GitHub Action mit `CLOUDFLARE_API_TOKEN`-Secret); Secrets: `wrangler secret put SESSION_SECRET`, `ADMIN_PASSWORD_HASH`.
 
 ## 12. Risiken & Gegenmaßnahmen
 
@@ -241,7 +238,7 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 |---|---|
 | Falsche Verteilung → Geldstreit | Tests mit Referenzrechnungen, Herleitung je Position (Betrag ← Anteil ← Verbrauch ← Stände) |
 | Datenverlust | Cloud-Sync + lokales Backup + Export-Hinweis; D1-Backups (D1 time-travel / Export) |
-| E-Mail landet im Spam | eigene Domain + SPF/DKIM/DMARC, `email_vorgang`-Status, Bounce-Monitoring |
+| PDF verliert Layout auf anderen Geräten | Fonts einbetten (pdf-lib), Test auf iOS/Android-Viewer, Sammel-PDF zusätzlich als CSV |
 | Backend-Ausfall | Frontend bleibt offline nutzbar (IndexedDB + Queue), Sync Later |
 | Preisänderung im Betrieb | Preis-Historie + Snapshot pro Ablesung (R9) |
 | Komplexe Zählerstruktur | Zyklenprüfung + visuelle Strukturansicht in S2 |
@@ -250,8 +247,7 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 
 ## 13. Offene Architektur-Entscheidungen
 
-- E-Mail-Provider & eigene Domain (Resend vs. SMTP-eigener Server) – Voraussetzung für Gmail-Zustellung.
-- Einzel-PDF je Bewohner vs. Sammel-PDF (+ Archiv).
+- Einzel-PDF je Bewohner vs. Sammel-PDF (+ Archiv) – Empfehlung: beides.
 - Zwei-Faktor-Login für den Admin.
 - Realtime-Sync (nötig?) oder Polling im 30-s-Takt reicht (nur ein Admin → Polling reicht).
 - Preis-Stufen pro Jahr vs. Preis-Historie mit Datum (Empfehlung: Historie mit Datum deckt beides ab).
