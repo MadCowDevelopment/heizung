@@ -18,14 +18,18 @@ import { ScreenBewohner } from "./screens/ScreenBewohner";
 import { ScreenVerbrauch } from "./screens/ScreenVerbrauch";
 import { ScreenAbschlaege } from "./screens/ScreenAbschlaege";
 import { ScreenKonto } from "./screens/ScreenKonto";
+import { ScreenDashboard } from "./screens/ScreenDashboard";
+import { ScreenAbrechnung } from "./screens/ScreenAbrechnung";
 import { tokenLesen } from "../storage/github";
 
 const NAVIGATION = [
+  { pfad: "/", schluessel: "nav.dashboard" },
   { pfad: "/zaehler", schluessel: "nav.zaehler" },
   { pfad: "/ablesung", schluessel: "nav.ablesung" },
   { pfad: "/bewohner", schluessel: "nav.bewohner" },
   { pfad: "/verbrauch", schluessel: "nav.verbrauch" },
   { pfad: "/abschlaege", schluessel: "nav.abschlaege" },
+  { pfad: "/abrechnung", schluessel: "nav.abrechnung" },
   { pfad: "/konto", schluessel: "nav.konto" },
 ] as const;
 
@@ -94,6 +98,7 @@ export function App() {
             <NavLink
               key={eintrag.pfad}
               to={eintrag.pfad}
+              end={eintrag.pfad === "/"}
               className="relative flex min-h-11 shrink-0 items-center whitespace-nowrap px-3 py-2.5 text-[0.875rem] font-medium"
               style={({ isActive }) => ({
                 color: isActive ? "#1b1a17" : "#6b6862",
@@ -122,12 +127,14 @@ export function App() {
           </p>
         ) : (
           <Routes>
-            <Route path="/" element={<ScreenZaehler />} />
+            <Route path="/" element={<ScreenDashboard />} />
+            <Route path="/dashboard" element={<ScreenDashboard />} />
             <Route path="/zaehler" element={<ScreenZaehler />} />
             <Route path="/ablesung" element={<ScreenAblesung />} />
             <Route path="/bewohner" element={<ScreenBewohner />} />
             <Route path="/verbrauch" element={<ScreenVerbrauch />} />
             <Route path="/abschlaege" element={<ScreenAbschlaege />} />
+            <Route path="/abrechnung" element={<ScreenAbrechnung />} />
             <Route path="/konto" element={<ScreenKonto />} />
             <Route path="*" element={<ScreenZaehler />} />
           </Routes>

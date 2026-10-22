@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { MemoryAdapter } from "../../storage/memory";
 import { STATE_PFAD, useAppStore } from "../store";
-import type { MeterUnit } from "../../domain/types";
+import type { Abrechnung, MeterUnit } from "../../domain/types";
 
 /** Setzt den Store auf einen leeren, mit Memory-Speicher versehenen Zustand. */
 async function frischerStore(): Promise<MemoryAdapter> {
@@ -177,6 +177,26 @@ describe("Anwendungszustand", () => {
 
     useAppStore.getState().zahlungStornieren(zahlung.id);
     expect(useAppStore.getState().state.zahlung[0].deleted).toBe(true);
+  });
+
+  it("speichert eingefrorene Abrechnungen und pflegt ihren Status", async () => {
+    const abrechnung: Abrechnung = {
+      id: "abrechnung-2026",
+      jahr: 2026,
+      von: "2026-01-01",
+      bis: "2026-12-31",
+      betreiberBetrag: 125,
+      status: "entwurf",
+      positionen: [],
+    };
+    useAppStore.getState().abrechnungSpeichern(abrechnung);
+    useAppStore.getState().abrechnungAbschliessen(abrechnung);
+    await useAppStore.getState().speichern();
+
+    const gespeichert = useAppStore.getState().state.abrechnung[0];
+    expect(gespeichert.status).toBe("verteilt");
+    expect(gespeichert.betreiberBetrag).toBe(125);
+    expect(JSON.parse((await useAppStore.getState().speicher.read(STATE_PFAD)) as string).abrechnung[0].status).toBe("verteilt");
   });
 
   it("löst Zähler eines gelöschten Bewohners", () => {

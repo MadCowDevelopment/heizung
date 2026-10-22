@@ -21,10 +21,10 @@ nicht der Code.
 Domänenmodell und Datenmodell stehen in `docs/requirements.md` §2 und §7; die Datenablage
 als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
 
-## Status: Meilenstein M1 („Cloud, Verbrauch & Abschläge“)
+## Status: Meilenstein M2 („Abrechnung“)
 
-Der aktuelle Stand entspricht **M1** laut [`docs/requirements.md` §6.4](docs/requirements.md).
-Kurzfassung:
+**M0 und M1** (Cloud, Verbrauch & Abschläge) sowie **M2** (Abrechnung) sind laut
+[`docs/requirements.md` §6.4](docs/requirements.md) umgesetzt. Kurzfassung:
 
 **Umgesetzt und getestet**
 
@@ -45,18 +45,22 @@ Kurzfassung:
   und der JSON-Export/-Import des Gesamtzustands – jeweils auf Domänenebene.
 - **Bedienoberfläche** für S2 (Zähler), S3 (Ablesung), S4 (Bewohner), S5 (Verbrauch & Verteilung)
   und S6 (Abschläge) – mit Zeitraumwahl, Plausibilitätswarnungen, CSV-Export und Zahlungsraster.
+- **Dashboard (S1)** mit Jahresverbrauch, Bewohnerkosten, offenen Abschlägen, letzter Ablesung,
+  Cloud-Status und Plausibilitätswarnungen.
+- **Jahresabrechnung (S7)** mit Betreiberbetrag, neu berechenbarer Verteilung, Abschlägen,
+  Summencheck, speicherbarem Entwurf und explizitem Abschluss samt Warnungsfreigabe.
+- **Eingefrorene Abrechnungspositionen** als Quelle für Bewohner-PDFs, Sammel-PDF und
+  Abrechnungs-CSV. PDFs entstehen lokal im Browser und können in der Vorschau geprüft,
+  heruntergeladen oder über Web Share geteilt werden.
+- **JSON-Backup** des vollständigen Datenbestands zum Export und bestätigungspflichtigen Import.
 - **Cloud-Sync** über Fine-grained PAT und GitHub Contents API: lokale IndexedDB-Queue,
   SHA-optimistische Schreibvorgänge, Last-Write-Wins-Merge bei Konflikten und Retry.
 - **Testsuite** mit Vitest für Rechenkern, Im-/Export, Store, Cloud-Sync und i18n-Parität.
 
-**Noch nicht umgesetzt**
+**Noch nicht umgesetzt (M3)**
 
-- **PDF-Ausgabe** (R10) und **CSV-Export der Abrechnung**: geplant für **M2**.
-- **Abrechnungsoberfläche (S7)** und **Dashboard (S1)**: geplant für **M2**.
-- **JSON-Backup in der Oberfläche** (Export/Import nach S8): die Domänenfunktionen
-  existieren und sind getestet, sind aber noch nicht an die Bedienoberfläche angebunden.
-- **PWA-Offline-Shell, Kamera/OCR-Belege, Preis-Historie-UI, Sprachumschalter**: geplant
-  für **M3** (siehe §6.4 der Anforderungen).
+- **PWA-Offline-Shell und Kamera/OCR-Belege**.
+- **Preis-Historie-Oberfläche, Sprachumschalter und weitere Einstellungsansichten**.
 
 Der weitere Ziel-Stack inklusive TanStack Query, React Hook Form/Zod und `vite-plugin-pwa`
 steht in `docs/requirements.md` §6.1.
