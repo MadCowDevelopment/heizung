@@ -183,7 +183,7 @@ Sync-Fehler-Banner, Offline-Hinweis, Validierungs- und Plausibilitäts-Markierun
 - **Admin-only-Zugriff:** Anmeldung über ein **GitHub-Fine-grained PAT**, das auf genau das private Daten-Repo (`Contents: Read and write`) beschränkt ist; die App prüft es per `GET /user`. Kein eigener Login, Token-Widerruf im GitHub-UI. Bewohner haben **keinen** Login, sie erhalten die PDF. (Ein OAuth-Device-Flow ist aus dem Browser nicht aufrufbar – CORS, siehe [architecture.md §2.1](./architecture.md).)
 - **Personenbezogene Daten** (Namen, Stände) liegen ausschließlich im **privaten** Daten-Repo; Zugriff nur über den GitHub-Token des Admins. Export & vollständige Löschung, Historie/Restore über Git-Commits.
 - **PDF-Erzeugung clientseitig** → keine PDF-/Mail-Dienste, keine zusätzlichen Geheimnisse, Daten verlassen das Gerät nicht.
-- **Sprache:** UI Deutsch (i18n EN vorbereitet), `de-DE`-Format für Datum/Zahl/Währung.
+- **Sprache:** UI Deutsch und Englisch über die lokale Sprachwahl; Zahlen, Datum und Währung folgen der gewählten Sprache (`de-DE` bzw. `en-GB`).
 - **Performance:** < 2 s Ladezeit im Mobilnetz, Bedienung offline nach Erstladen.
 - **Export/Import** (JSON-Backup mit `schemaVersion` + Migrationen) als Notlösung/Umzug.
 - **Nachvollziehbarkeit:** jede Position zeigt die Herleitung (Betrag ← Anteil ← Verbrauch ← Zählerstände).
@@ -202,7 +202,7 @@ Detail: [architecture.md](./architecture.md)
 | State | **TanStack Query** (Server-State) + **Zustand** (UI-/Entwurfs-State) | Offline-Cache, Retry, klar getrennte Zuständigkeit |
 | Formular/Validierung | **React Hook Form + Zod** | geteilte Schema für UI und Im-/Export |
 | Styling | **Tailwind CSS** | schnelles Mobile-Layout, Design-Tokens für die Farbkodierung |
-| PWA | **vite-plugin-pwa** | Offline-Shell, Install-Prompt |
+| PWA | **Service Worker + Web App Manifest** | gecachte Offline-Shell, installierbare Oberfläche |
 | PDF/CSV | **clientseitig** (pdf-lib für PDF, CSV-Export) | PDF enthält personenbezogene Daten → bleibt auf dem Admin-Gerät, kein Versanddienst nötig |
 | i18n | `react-i18next` | de/en |
 | Tests | Vitest (Rechenlogik) + Playwright (Erfassungs- & Login-Flow) | R1–R11 sind das Kernrisiko |
@@ -249,7 +249,7 @@ flowchart LR
 1. **M0 Statischer Prototyp:** Domänenmodell + Rechenkern (R1–R11) + Unit-Tests; S2/S3/S4 mit lokalem Adapter; Startablesungen-Import.
 2. **M1 Cloud:** ✅ umgesetzt – Token-Verwaltung (Fine-grained PAT), GitHub-`StorageAdapter`, lokale Queue mit SHA-Merge/Retry sowie S5 Verbrauch & Verteilung und S6 Abschläge.
 3. **M2 Abrechnung:** S7 (Betreiberbetrag, Verteilung, Abschläge, Einzel-/Sammel-PDF, CSV), Export/Import.
-4. **M3 Politur:** Kamera/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n, GitHub Actions → Pages.
+4. **M3 Politur:** ✅ umgesetzt – Kamera-/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n und GitHub Actions → Pages.
 
 ---
 

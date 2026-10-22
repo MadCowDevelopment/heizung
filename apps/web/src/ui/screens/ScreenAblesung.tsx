@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import type { ISODate, MeterType, Zaehler } from "../../domain/types";
 import { today } from "../../domain/calc/dates";
 import { useAppStore, type EntwurfEintrag } from "../../state/store";
+import { IndexedDbAdapter } from "../../storage/indexeddb";
 import { ablesungenVon, aktiveZaehler, letzteAblesung } from "../auswahl";
 import { datum, stand } from "../format";
 import { MeterChip, Typstreifen } from "../components/MeterChip";
@@ -35,6 +36,19 @@ interface Zeile {
   unsicher: boolean;
   notiz: string;
   versteckt: boolean;
+  fotoKey?: string | null;
+}
+
+interface TextDetectionResult {
+  rawValue: string;
+}
+
+interface TextDetectorApi {
+  detect(image: ImageBitmap): Promise<TextDetectionResult[]>;
+}
+
+interface TextDetectorGlobal {
+  TextDetector?: new () => TextDetectorApi;
 }
 
 export function ScreenAblesung() {
@@ -50,6 +64,7 @@ export function ScreenAblesung() {
   const [datumWert, setDatumWert] = useState<ISODate>(entwurf?.datum ?? today());
   const [zeilen, setZeilen] = useState<Map<string, Zeile>>(new Map());
   const [verlaufOffen, setVerlaufOffen] = useState<string | null>(null);
+  const [ocr, setOcr] = useState<Map<string, { busy: boolean; kandidaten: string[]; nichtVerfuegbar: boolean }>>(new Map());
 
   const zaehler = useMemo(
     () =>
@@ -87,6 +102,7 @@ export function ScreenAblesung() {
         unsicher: eintrag.unsicher,
         notiz: eintrag.notiz,
         versteckt: false,
+        fotoKey: eintrag.fotoKey ?? null,
       });
     }
     if (uebernommen.size > 0) setZeilen(uebernommen);
@@ -124,6 +140,7 @@ export function ScreenAblesung() {
         stand: zeile.wert,
         unsicher: zeile.unsicher,
         notiz: zeile.notiz,
+        fotoKey: zeile.fotoKey,
       });
     }
     entwurfSetzen(datumWert, eintraege);
@@ -137,7 +154,11 @@ export function ScreenAblesung() {
     for (const zeile of zeilen.values()) {
       const text = zeile.wert.trim();
       if (text === "") {
-        if (!zeile.unsicher && zeile.notiz.trim() === "") continue;
+        if (!zeile.unsicher && zeile.notiz.trim() === "" && !zeile.fotoKey) continue;
+        if (zeile.fotoKey) {
+          fehler += 1;
+          continue;
+        }
       }
       const wert = Number(text.replace(",", "."));
       if (text !== "" && !Number.isFinite(wert)) {
@@ -153,6 +174,7 @@ export function ScreenAblesung() {
         stand: Number.isFinite(wert) ? wert : 0,
         unsicher: zeile.unsicher,
         notiz: zeile.notiz,
+        fotoKey: zeile.fotoKey,
       });
       if (!ergebnis.ok) {
         fehler += 1;
@@ -256,6 +278,10 @@ export function ScreenAblesung() {
         {zaehler.map((z) => {
           const zeile = zeilen.get(z.id);
           const letzte = letzteAblesung(state.ablesung, z.id);
+          const vorhandeneFotoKey = state.ablesung.find(
+            (a) => a.zaehlerId === z.id && a.datum === datumWert && !a.deleted,
+          )?.fotoKey;
+          const fotoKey = zeile?.fotoKey ?? vorhandeneFotoKey ?? null;
           const versteckt = zeile?.versteckt ?? false;
 
           return (
@@ -361,6 +387,46 @@ export function ScreenAblesung() {
                   </label>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-x-2">
+                  <label className="inline-flex min-h-11 cursor-pointer items-center text-[0.8125rem] underline underline-offset-4">
+                    <span>{t("ablesung.fotoAufnehmen")}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="sr-only"
+                      aria-label={`${t("ablesung.foto")} ${z.bezeichnung}`}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = "";
+                        if (file) void belegFotoSpeichern(z.id, file);
+                      }}
+                    />
+                  </label>
+                  {fotoKey ? (
+                    <Textaktion gefahr onClick={() => void belegFotoEntfernen(z.id, fotoKey)}>
+                      {t("ablesung.fotoEntfernen")}
+                    </Textaktion>
+                  ) : null}
+                </div>
+                {fotoKey ? (
+                  <div className="py-2">
+                    <FotoVorschau fotoKey={fotoKey} />
+                    <p className="text-[0.75rem]" style={{ color: "#6b6862" }}>{t("ablesung.fotoGesichert")}</p>
+                  </div>
+                ) : null}
+                {ocr.get(z.id)?.busy ? (
+                  <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("ablesung.ocrLaden")}</p>
+                ) : null}
+                {ocr.get(z.id)?.nichtVerfuegbar ? (
+                  <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("ablesung.ocrNichtVerfuegbar")}</p>
+                ) : null}
+                {ocr.get(z.id)?.kandidaten.map((wert) => (
+                  <Textaktion key={wert} onClick={() => zeileSetzen(z.id, { wert })}>
+                    {t("ablesung.ocrVorschlag", { value: wert })}
+                  </Textaktion>
+                ))}
+
                 <div className="flex flex-wrap items-center gap-x-1">
                   <Textaktion onClick={() => zeileSetzen(z.id, { versteckt: !versteckt })}>
                     {versteckt ? t("ablesung.einblenden") : t("ablesung.verstecken")}
@@ -390,8 +456,172 @@ export function ScreenAblesung() {
 
     </div>
   );
+
+  async function belegFotoSpeichern(zaehlerId: string, datei: File) {
+    const speicher = useAppStore.getState().speicher;
+    if (!(speicher instanceof IndexedDbAdapter)) {
+      meldungSetzen({
+        art: "fehler",
+        text: t("ablesung.fotoSpeichernFehler", { reason: t("ablesung.fotoSpeicherNichtVerfuegbar") }),
+      });
+      return;
+    }
+    let blob: Blob;
+    try {
+      blob = await fotoKomprimieren(datei);
+    } catch {
+      meldungSetzen({
+        art: "fehler",
+        text: t("ablesung.fotoSpeichernFehler", {
+          reason: t("ablesung.fotoVerarbeitungFehler"),
+        }),
+      });
+      return;
+    }
+    const schluessel = `ablesung-${zaehlerId}-${datumWert}-${crypto.randomUUID()}`;
+    try {
+      await speicher.fotoSpeichern(schluessel, blob);
+    } catch (error) {
+      meldungSetzen({
+        art: "fehler",
+        text: t("ablesung.fotoSpeichernFehler", {
+          reason: error instanceof Error ? error.message : t("cloud.unbekannterFehler"),
+        }),
+      });
+      return;
+    }
+    const vorherigerKey = zeilen.get(zaehlerId)?.fotoKey ?? state.ablesung.find(
+      (a) => a.zaehlerId === zaehlerId && a.datum === datumWert && !a.deleted,
+    )?.fotoKey;
+    zeileSetzen(zaehlerId, { fotoKey: schluessel });
+    const gespeicherterKey = state.ablesung.find(
+      (a) => a.zaehlerId === zaehlerId && a.datum === datumWert && !a.deleted,
+    )?.fotoKey;
+    if (vorherigerKey && vorherigerKey !== gespeicherterKey) {
+      try {
+        await speicher.fotoLoeschen(vorherigerKey);
+      } catch (error) {
+        meldungSetzen({
+          art: "warnung",
+          text: t("ablesung.fotoAufraeumenFehler", {
+            reason: error instanceof Error ? error.message : t("cloud.unbekannterFehler"),
+          }),
+        });
+      }
+    }
+
+    setOcr((vorher) => new Map(vorher).set(zaehlerId, {
+      busy: true,
+      kandidaten: [],
+      nichtVerfuegbar: false,
+    }));
+    const textDetector = (globalThis as typeof globalThis & TextDetectorGlobal).TextDetector;
+    if (!textDetector || typeof createImageBitmap !== "function") {
+      setOcr((vorher) => new Map(vorher).set(zaehlerId, {
+        busy: false,
+        kandidaten: [],
+        nichtVerfuegbar: true,
+      }));
+      return;
+    }
+    let bild: ImageBitmap | null = null;
+    try {
+      bild = await createImageBitmap(blob);
+      const erkannteTexte = await new textDetector().detect(bild);
+      const kandidaten = [...new Set(
+        erkannteTexte.flatMap((eintrag) =>
+          eintrag.rawValue.match(/\d+(?:[.,]\d+)?/g) ?? [],
+        ).map((wert) => wert.replace(",", ".")),
+      )];
+      setOcr((vorher) => new Map(vorher).set(zaehlerId, {
+        busy: false,
+        kandidaten,
+        nichtVerfuegbar: false,
+      }));
+    } catch {
+      setOcr((vorher) => new Map(vorher).set(zaehlerId, {
+        busy: false,
+        kandidaten: [],
+        nichtVerfuegbar: false,
+      }));
+      meldungSetzen({
+        art: "info",
+        text: t("ablesung.ocrFehler"),
+      });
+    } finally {
+      bild?.close();
+    }
+  }
+
+  async function belegFotoEntfernen(zaehlerId: string, fotoKey: string) {
+    try {
+      const speicher = useAppStore.getState().speicher;
+      const gespeicherterKey = state.ablesung.find(
+        (a) => a.zaehlerId === zaehlerId && a.datum === datumWert && !a.deleted,
+      )?.fotoKey;
+      if (speicher instanceof IndexedDbAdapter && fotoKey !== gespeicherterKey) {
+        await speicher.fotoLoeschen(fotoKey);
+      }
+      zeileSetzen(zaehlerId, { fotoKey: null });
+      setOcr((vorher) => new Map(vorher).set(zaehlerId, {
+        busy: false,
+        kandidaten: [],
+        nichtVerfuegbar: false,
+      }));
+    } catch (error) {
+      meldungSetzen({
+        art: "fehler",
+        text: t("ablesung.fotoSpeichernFehler", {
+          reason: error instanceof Error ? error.message : t("cloud.unbekannterFehler"),
+        }),
+      });
+    }
+  }
 }
 
+async function fotoKomprimieren(datei: File): Promise<Blob> {
+  if (typeof createImageBitmap !== "function") return datei;
+  const bild = await createImageBitmap(datei);
+  const skalierung = Math.min(1, 1600 / Math.max(bild.width, bild.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bild.width * skalierung));
+  canvas.height = Math.max(1, Math.round(bild.height * skalierung));
+  const kontext = canvas.getContext("2d");
+  if (!kontext) {
+    bild.close();
+    throw new Error("image-context-unavailable");
+  }
+  kontext.drawImage(bild, 0, 0, canvas.width, canvas.height);
+  bild.close();
+  const komprimiert = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", 0.82),
+  );
+  if (!komprimiert) throw new Error("image-encoding-failed");
+  return komprimiert;
+}
+
+function FotoVorschau({ fotoKey }: { fotoKey: string }) {
+  const [url, setUrl] = useState("");
+  const speicher = useAppStore((s) => s.speicher);
+  useEffect(() => {
+    if (!(speicher instanceof IndexedDbAdapter)) return;
+    let aktiv = true;
+    let objektUrl = "";
+    void speicher.fotoLesen(fotoKey).then((blob) => {
+      if (!blob || !aktiv) return;
+      objektUrl = URL.createObjectURL(blob);
+      setUrl(objektUrl);
+    }).catch((error: unknown) => {
+      console.error("Beleg-Foto konnte nicht geladen werden.", error);
+    });
+    return () => {
+      aktiv = false;
+      if (objektUrl) URL.revokeObjectURL(objektUrl);
+    };
+  }, [fotoKey, speicher]);
+
+  return url ? <img src={url} alt="" className="max-h-40 max-w-full rounded border object-contain" style={{ borderColor: "#e3ded4" }} /> : null;
+}
 /** Verlauf der letzten Ablesungen eines Zählers (S3). */
 function Verlauf({ zaehlerId, onLoeschen }: { zaehlerId: string; onLoeschen: (id: string) => void }) {
   const { t } = useTranslation();

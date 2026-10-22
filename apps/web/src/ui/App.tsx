@@ -20,6 +20,7 @@ import { ScreenAbschlaege } from "./screens/ScreenAbschlaege";
 import { ScreenKonto } from "./screens/ScreenKonto";
 import { ScreenDashboard } from "./screens/ScreenDashboard";
 import { ScreenAbrechnung } from "./screens/ScreenAbrechnung";
+import { ScreenEinstellungen } from "./screens/ScreenEinstellungen";
 import { tokenLesen } from "../storage/github";
 
 const NAVIGATION = [
@@ -31,6 +32,7 @@ const NAVIGATION = [
   { pfad: "/abschlaege", schluessel: "nav.abschlaege" },
   { pfad: "/abrechnung", schluessel: "nav.abrechnung" },
   { pfad: "/konto", schluessel: "nav.konto" },
+  { pfad: "/einstellungen", schluessel: "nav.einstellungen" },
 ] as const;
 
 export function App() {
@@ -136,6 +138,7 @@ export function App() {
             <Route path="/abschlaege" element={<ScreenAbschlaege />} />
             <Route path="/abrechnung" element={<ScreenAbrechnung />} />
             <Route path="/konto" element={<ScreenKonto />} />
+            <Route path="/einstellungen" element={<ScreenEinstellungen />} />
             <Route path="*" element={<ScreenZaehler />} />
           </Routes>
         )}

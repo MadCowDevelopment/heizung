@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatLocale } from "../format";
 import { useAppStore } from "../../state/store";
 import { GitHubStorageAdapter, gueltigesRepo, pruefeGitHubToken, tokenLesen, tokenSpeichern } from "../../storage/github";
 import { Auswahl, Eingabe, KnopfPrimär, KnopfSekundaer } from "../components/Primitives";
@@ -39,9 +40,10 @@ export function ScreenKonto() {
       });
       if (!access.ok) throw new Error(access.status === 404 ? t("cloud.repoNichtGefunden") : t("cloud.zugriffFehlgeschlagen", { status: access.status }));
       await adapter.readFile("data/state.json");
+      const gespeichert = await einstellungenAendern({ datenRepo: repo.trim() });
+      if (!gespeichert) throw new Error(t("store.speichernFehlerOhneGrund"));
       tokenSpeichern(token);
       globalThis.localStorage?.setItem(USER_KEY, login);
-      einstellungenAendern({ datenRepo: repo.trim() });
       setUser(login);
       setMeldung(t("cloud.verbundenAls", { name: login }));
       await synchronisieren();
@@ -85,7 +87,7 @@ export function ScreenKonto() {
         {fehler ? <p role="alert" className="text-[0.8125rem]" style={{ color: "#b3261e" }}>{fehler}</p> : null}
         <div className="border-t pt-3 text-[0.8125rem]" style={{ borderColor: "#e3ded4", color: "#55524c" }}>
           <p>{t("cloud.status")}: {t(`cloud.syncStatus.${syncStatus}`)}</p>
-          {syncZuletzt ? <p>{t("cloud.zuletzt")}: {new Date(syncZuletzt).toLocaleString("de-DE")}</p> : null}
+          {syncZuletzt ? <p>{t("cloud.zuletzt")}: {new Date(syncZuletzt).toLocaleString(formatLocale())}</p> : null}
           {user ? <p className="mt-2">{t("cloud.widerrufHinweis")}</p> : null}
         </div>
         <label className="flex flex-col gap-1">

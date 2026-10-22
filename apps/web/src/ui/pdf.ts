@@ -1,7 +1,8 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Abrechnung, AbrechnungsPosition, Einstellungen } from "../domain/types";
+import i18n from "../i18n";
 import { meldeText } from "../i18n/meldung";
-import { datum } from "./format";
+import { datum, formatLocale } from "./format";
 
 const SEITENBREITE = 595.28;
 const SEITENHOEHE = 841.89;
@@ -15,14 +16,14 @@ const FARBE = {
 };
 
 function geld(wert: number): string {
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat(formatLocale(), {
     style: "currency",
     currency: "EUR",
   }).format(wert);
 }
 
 function zahl(wert: number, stellen = 3): string {
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat(formatLocale(), {
     minimumFractionDigits: stellen,
     maximumFractionDigits: stellen,
   }).format(wert);
@@ -97,12 +98,13 @@ function abrechnungsSeite(
   erstellt: string,
 ): void {
   const page = pdf.addPage([SEITENBREITE, SEITENHOEHE]);
-  const objekt = einstellungen.objektName?.trim() || "Heizungsabrechnung";
+  const objekt = einstellungen.objektName?.trim() || i18n.t("app.titel");
+  const t = (key: string, options?: Record<string, string | number>) => i18n.t(`pdf.${key}`, options);
   text(page, bold, objekt, 48, 786, 18);
-  text(page, regular, "Jahresabrechnung", 48, 758, 13, FARBE.sekund);
-  text(page, regular, `Zeitraum: ${datum(abrechnung.von)} bis ${datum(abrechnung.bis)}`, 48, 736);
-  text(page, regular, `Bewohner/in: ${position.bewohnerName}`, 48, 718);
-  text(page, regular, `Erstellt am: ${erstellt}`, 48, 700, 9, FARBE.sekund);
+  text(page, regular, t("titel"), 48, 758, 13, FARBE.sekund);
+  text(page, regular, t("zeitraum", { from: datum(abrechnung.von), to: datum(abrechnung.bis) }), 48, 736);
+  text(page, regular, t("bewohner", { name: position.bewohnerName }), 48, 718);
+  text(page, regular, t("erstellt", { date: erstellt }), 48, 700, 9, FARBE.sekund);
 
   page.drawLine({
     start: { x: 48, y: 682 },
@@ -110,34 +112,34 @@ function abrechnungsSeite(
     thickness: 1,
     color: FARBE.linie,
   });
-  text(page, bold, "Verbrauch und Verteilung", 48, 658, 12);
-  zeile(page, regular, bold, "Warmwasser", `${zahl(position.wasserWarmM3)} m³`, 632, FARBE.warm);
-  zeile(page, regular, bold, "Kaltwasser", `${zahl(position.wasserKaltM3)} m³`, 606, FARBE.kalt);
-  zeile(page, regular, bold, "Energie", `${zahl(position.energieMWh)} MWh`, 580, FARBE.energie);
-  zeile(page, regular, bold, "Anteil an den theoretischen Kosten", `${zahl(position.anteilProzent, 2)} %`, 554);
-  zeile(page, regular, bold, "Theoretische Kosten", geld(position.kostenTheoretisch), 528);
-  zeile(page, regular, bold, "Verteilter Betreiberbetrag", geld(position.rechnungsbetrag), 502);
-  zeile(page, regular, bold, "Gezahlte Abschläge", geld(position.summeAbschlaege), 476);
+  text(page, bold, t("verbrauchVerteilung"), 48, 658, 12);
+  zeile(page, regular, bold, t("warmwasser"), `${zahl(position.wasserWarmM3)} m³`, 632, FARBE.warm);
+  zeile(page, regular, bold, t("kaltwasser"), `${zahl(position.wasserKaltM3)} m³`, 606, FARBE.kalt);
+  zeile(page, regular, bold, t("energie"), `${zahl(position.energieMWh)} MWh`, 580, FARBE.energie);
+  zeile(page, regular, bold, t("anteil"), `${zahl(position.anteilProzent, 2)} %`, 554);
+  zeile(page, regular, bold, t("theoretischeKosten"), geld(position.kostenTheoretisch), 528);
+  zeile(page, regular, bold, t("betreiberbetrag"), geld(position.rechnungsbetrag), 502);
+  zeile(page, regular, bold, t("abschlaege"), geld(position.summeAbschlaege), 476);
   const saldofarbe = position.saldo > 0 ? FARBE.warm : position.saldo < 0 ? FARBE.kalt : FARBE.tinte;
-  zeile(page, regular, bold, position.saldo > 0 ? "Nachzahlung" : "Guthaben / Saldo", geld(position.saldo), 450, saldofarbe);
+  zeile(page, regular, bold, t(position.saldo > 0 ? "nachzahlung" : "saldo"), geld(position.saldo), 450, saldofarbe);
 
-  text(page, bold, "Erläuterung", 48, 405, 11);
+  text(page, bold, t("erklaerung"), 48, 405, 11);
   let y = absatz(
     page,
     regular,
-    "Der Betreiberbetrag wird im Verhältnis der theoretischen Kosten verteilt. Die Beträge werden kaufmännisch gerundet; Rundungsreste werden so verteilt, dass die Summe exakt dem Betreiberbetrag entspricht.",
+    t("erklaerungText"),
     48,
     384,
     SEITENBREITE - 96,
   );
   if (abrechnung.betreiberHinweis?.trim()) {
-    y = absatz(page, regular, `Hinweis des Betreibers: ${abrechnung.betreiberHinweis.trim()}`, 48, y - 7, SEITENBREITE - 96);
+    y = absatz(page, regular, t("betreiberHinweis", { note: abrechnung.betreiberHinweis.trim() }), 48, y - 7, SEITENBREITE - 96);
   }
   if (position.hinweise.length) {
     y = absatz(
       page,
       regular,
-      `Hinweise: ${position.hinweise.map((meldung) => meldeText(meldung)).join(" ")}`,
+      t("hinweise", { notes: position.hinweise.map((meldung) => meldeText(meldung)).join(" ") }),
       48,
       y - 7,
       SEITENBREITE - 96,
@@ -147,9 +149,9 @@ function abrechnungsSeite(
     y = absatz(page, regular, einstellungen.pdfHinweis.trim(), 48, y - 7, SEITENBREITE - 96);
   }
   if (einstellungen.ansprechpartner?.trim()) {
-    text(page, regular, `Ansprechpartner: ${einstellungen.ansprechpartner.trim()}`, 48, Math.max(70, y - 8), 9, FARBE.sekund);
+    text(page, regular, t("ansprechpartner", { name: einstellungen.ansprechpartner.trim() }), 48, Math.max(70, y - 8), 9, FARBE.sekund);
   }
-  text(page, regular, `Abrechnung ${abrechnung.jahr} · ${position.bewohnerName}`, 48, 42, 8, FARBE.sekund);
+  text(page, regular, t("fusszeile", { year: abrechnung.jahr, name: position.bewohnerName }), 48, 42, 8, FARBE.sekund);
 }
 
 /** Erstellt eine PDF ausschließlich aus dem gespeicherten Stand der Abrechnung. */
@@ -161,14 +163,14 @@ export async function abrechnungAlsPdf(
   const positionen = bewohnerId
     ? abrechnung.positionen.filter((position) => position.bewohnerId === bewohnerId)
     : abrechnung.positionen;
-  if (positionen.length === 0) throw new Error("Für diese Abrechnung gibt es keine Positionen.");
+  if (positionen.length === 0) throw new Error(i18n.t("pdf.keinePositionen"));
 
   const pdf = await PDFDocument.create();
-  pdf.setTitle(`Abrechnung ${abrechnung.jahr}`);
-  pdf.setSubject("Eingefrorene Jahresabrechnung");
+  pdf.setTitle(`${i18n.t("pdf.titel")} ${abrechnung.jahr}`);
+  pdf.setSubject(i18n.t("pdf.betreff"));
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const erstellt = new Intl.DateTimeFormat("de-DE").format(new Date());
+  const erstellt = new Intl.DateTimeFormat(formatLocale()).format(new Date());
   for (const position of positionen) {
     abrechnungsSeite(pdf, regular, bold, abrechnung, position, einstellungen, erstellt);
   }

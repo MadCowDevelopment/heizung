@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { DEFAULT_EINSTELLUNGEN, type Abrechnung } from "../../domain/types";
+import i18n from "../../i18n";
 import { abrechnungAlsPdf } from "../pdf";
 
 const abrechnung: Abrechnung = {
@@ -59,6 +60,17 @@ describe("Abrechnungs-PDF", () => {
     const pdf = await PDFDocument.load(bytes);
 
     expect(pdf.getPageCount()).toBe(1);
+  });
+
+  it("übernimmt die gewählte Sprache in PDF-Metadaten und Inhalt", async () => {
+    await i18n.changeLanguage("en");
+    try {
+      const bytes = await abrechnungAlsPdf(abrechnung, DEFAULT_EINSTELLUNGEN, "b-anna");
+      const pdf = await PDFDocument.load(bytes);
+      expect(pdf.getTitle()).toBe("Annual billing 2025");
+    } finally {
+      await i18n.changeLanguage("de");
+    }
   });
 
   it("meldet fehlende Einzelpositionen explizit", async () => {

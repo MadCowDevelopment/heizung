@@ -96,6 +96,54 @@ describe("Anwendungszustand", () => {
     expect(ablesungen[0].notiz).toBe("korrigiert");
   });
 
+  it("speichert Preisstufen und kann sie aktualisieren oder entfernen", () => {
+    const preisId = useAppStore.getState().preisSpeichern({
+      gueltigAb: "2026-01-01",
+      preisMWh: 0.15,
+      preisM3: 0.02,
+      notiz: "Jahrespreis",
+    });
+    expect(useAppStore.getState().state.preis).toHaveLength(1);
+    useAppStore.getState().preisSpeichern({
+      id: preisId,
+      gueltigAb: "2026-01-01",
+      preisMWh: 0.2,
+      preisM3: 0,
+    });
+    expect(useAppStore.getState().state.preis).toEqual([
+      expect.objectContaining({ id: preisId, preisMWh: 0.2, preisM3: 0 }),
+    ]);
+    useAppStore.getState().preisLoeschen(preisId);
+    expect(useAppStore.getState().state.preis[0]).toMatchObject({ id: preisId, deleted: true });
+  });
+
+  it("persistiert einstellbare Standardpreise", async () => {
+    const erfolgreich = await useAppStore.getState().einstellungenAendern({
+      preisMWhDefault: 0.25,
+      preisM3Default: 1.5,
+    });
+    expect(erfolgreich).toBe(true);
+    const gespeicherterStand = JSON.parse(
+      (await useAppStore.getState().speicher.read(STATE_PFAD)) as string,
+    );
+    expect(gespeicherterStand.einstellungen).toMatchObject({
+      preisMWhDefault: 0.25,
+      preisM3Default: 1.5,
+    });
+  });
+
+  it("speichert den lokalen Foto-Schlüssel an einer Ablesung", () => {
+    const meterId = zaehlerAnlegen("Heizung");
+    useAppStore.getState().ablesungSpeichern({
+      zaehlerId: meterId,
+      datum: "2026-01-15",
+      stand: 100,
+      unsicher: false,
+      fotoKey: "ablesung-local-photo",
+    });
+    expect(useAppStore.getState().state.ablesung[0].fotoKey).toBe("ablesung-local-photo");
+  });
+
   it("hält Ablesungen an verschiedenen Tagen getrennt", () => {
     const id = zaehlerAnlegen("Heizung");
     useAppStore.getState().ablesungSpeichern({

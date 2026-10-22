@@ -145,6 +145,8 @@ export interface Preis {
   preisMWh: number;
   preisM3: number;
   notiz?: string;
+  updatedAt?: ISOTimestamp;
+  deleted?: boolean;
 }
 
 /** Abschlagplan eines Bewohners (R6). */
@@ -215,6 +217,9 @@ export interface Abrechnung {
 export interface Einstellungen {
   verteilSchluessel: VerteilSchluessel;
   waehrung: string;
+  /** Fallback-Preise vor der ersten Preisstufe. */
+  preisMWhDefault: number;
+  preisM3Default: number;
   objektName?: string;
   ansprechpartner?: string;
   pdfHinweis?: string;
@@ -251,6 +256,8 @@ export const SCHEMA_VERSION = 4;
 export const DEFAULT_EINSTELLUNGEN: Einstellungen = {
   verteilSchluessel: "warm",
   waehrung: "EUR",
+  preisMWhDefault: 0.1,
+  preisM3Default: 0,
   objektName: "",
   ansprechpartner: "",
   pdfHinweis: "",
