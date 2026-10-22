@@ -37,8 +37,7 @@ export function ImportStartablesungen({ onFertig }: { onFertig: () => void }) {
 
   return (
     <div
-      className="px-3 py-4 sm:px-4"
-      style={{ backgroundColor: "#f2eee6", borderTop: "1px solid #e3ded4" }}
+      className="surface-card p-4 sm:p-5"
     >
       <p className="mb-3 text-[0.875rem] leading-relaxed" style={{ color: "#55524c" }}>
         {t("meter.startablesungenHinweis")}
@@ -79,7 +78,7 @@ export function ImportStartablesungen({ onFertig }: { onFertig: () => void }) {
             </thead>
             <tbody>
               {fehler.map((f) => (
-                <tr key={f.zeile} style={{ borderTop: "1px solid #e3ded4" }}>
+                <tr key={f.zeile} style={{ borderTop: "1px solid #e1e5df" }}>
                   <td className="tnum py-1 pr-2 align-top">{f.zeile}</td>
                   <td className="py-1 align-top">{meldeText(f.grund)}</td>
                 </tr>

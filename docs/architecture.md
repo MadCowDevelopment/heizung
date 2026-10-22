@@ -246,9 +246,10 @@ function settlement(allocations, payments[]): { saldoCents, nachzahlung | auszah
 ## 9. Kamera/OCR (optional)
 
 - Foto über `<input type="file" accept="image/*" capture="environment">` → Gerätekamera direkt.
-- Optional: Tesseract.js (clientseitig, lazy geladen) liefert Ziffernvorschlag → **muss vom Nutzer bestätigt** werden, nie automatisch gespeichert.
+- Tesseract.js wird bei Bedarf geladen und verarbeitet das Bild clientseitig; Ziffernvorschläge **müssen vom Nutzer bestätigt** werden und werden nie automatisch gespeichert. Beim ersten Laden der OCR-Engine und Sprachdaten ist eine Internetverbindung nötig.
 - Ohne OCR: Bild anbei + manuelles Tippen (empfohlen für M0/M1, da OCR bei schlechten Zählerfotos unzuverlässig ist).
 - **Beleg-Speicher:** lokal (IndexedDB, nur auf dem Admin-Gerät); NICHT im Daten-Repo (Größe, Binärdaten, unnötige Verteilung).
+- Die OCR benötigt nur die Engine-/Sprachdaten vom CDN; das Foto selbst wird nicht übertragen. Ohne geladene Engine bleibt manuelle Erfassung möglich.
 
 ## 10. Farbkodierung (Design-System)
 

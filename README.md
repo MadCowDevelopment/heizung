@@ -16,7 +16,7 @@ nicht der Code.
 | [`docs/architecture.md`](docs/architecture.md) | Stack, Projektstruktur, Datenmodell, Berechnungs-Kern, Sync-Engine, PDF, Deployment (§11) |
 | [`docs/setup.md`](docs/setup.md) | Einmalige Einrichtung: Daten-Repo `MadCowDevelopment/heizung-data`, GitHub Pages, Fine-grained PAT |
 | [`PRODUCT.md`](PRODUCT.md) | Produktvision, Nutzerbild, Leitplanken |
-| [`DESIGN.md`](DESIGN.md) | Gestaltungssystem „Werkbank": Farbpalette, Typografie, Flächen, Regeln |
+| [`DESIGN.md`](DESIGN.md) | Gestaltungssystem „Clear Utility Console": Farbpalette, Typografie, Flächen, Regeln |
 
 Domänenmodell und Datenmodell stehen in `docs/requirements.md` §2 und §7; die Datenablage
 als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
@@ -61,9 +61,10 @@ als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
   unterstützte Browser können erkannte Ziffern als manuell zu bestätigende Vorschläge anbieten.
 - **Testsuite** mit Vitest für Rechenkern, Im-/Export, Store, Cloud-Sync und i18n-Parität.
 
-Die OCR-Vorschläge nutzen die browserseitige Text-Recognition-API, sofern der Browser sie
-bereitstellt; das Foto kann auch ohne OCR als Beleg gespeichert und der Stand manuell
-eingegeben werden. Fotos verlassen das Gerät nicht.
+OCR-Vorschläge werden mit Tesseract.js direkt im Browser erzeugt und müssen manuell
+bestätigt werden. Beim ersten Einsatz werden OCR-Engine und Sprachdaten geladen; das
+Foto wird nicht hochgeladen und bleibt auf dem Gerät. OCR benötigt beim ersten Laden eine
+Internetverbindung; die manuelle Eingabe funktioniert auch offline.
 
 Der weitere Ziel-Stack inklusive TanStack Query, React Hook Form/Zod und `vite-plugin-pwa`
 steht in `docs/requirements.md` §6.1.
@@ -125,7 +126,7 @@ veröffentlicht das Ergebnis nach <https://madcowdevelopment.github.io/heizung/>
 │   ├── requirements.md           # Domänenmodell, Regeln R0–R11, Screens, Meilensteine
 │   ├── architecture.md           # Stack, Datenmodell, Sync, Deployment
 │   └── setup.md                  # Einmalige Einrichtung (Daten-Repo, Pages, Token)
-├── DESIGN.md                     # Gestaltungssystem „Werkbank" (Tokens + Regeln)
+├── DESIGN.md                     # Gestaltungssystem „Clear Utility Console" (Tokens + Regeln)
 ├── apps/web/                     # Frontend (Vite + React + TypeScript)
 │   ├── src/
 │   │   ├── domain/               # Rechenkern als reine Funktionen

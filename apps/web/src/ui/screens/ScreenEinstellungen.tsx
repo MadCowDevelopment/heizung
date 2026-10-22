@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { sortPrices } from "../../domain/calc/costs";
 import type { Preis, VerteilSchluessel } from "../../domain/types";
@@ -93,7 +94,7 @@ export function ScreenEinstellungen() {
   };
 
   return (
-    <section className="space-y-8 pt-4 pb-10">
+    <section className="screen-stack">
       <div>
         <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>
           {t("einstellungen.titel")}
@@ -103,7 +104,7 @@ export function ScreenEinstellungen() {
         </p>
       </div>
 
-      <section className="space-y-3 border-t pt-4" style={{ borderColor: "#c9c3b6" }}>
+      <section className="surface-card space-y-3 p-4 sm:p-5">
         <h3 className="text-[1rem] font-semibold">{t("einstellungen.sprache")}</h3>
         <label className="flex max-w-sm flex-col gap-1">
           <span className="text-[0.75rem] font-medium uppercase tracking-[0.04em]" style={{ color: "#55524c" }}>
@@ -120,7 +121,7 @@ export function ScreenEinstellungen() {
         </label>
       </section>
 
-      <section className="space-y-3 border-t pt-4" style={{ borderColor: "#c9c3b6" }}>
+      <section className="surface-card space-y-3 p-4 sm:p-5">
         <h3 className="text-[1rem] font-semibold">{t("einstellungen.standardPreise")}</h3>
         <p className="max-w-[65ch] text-[0.8125rem] leading-relaxed" style={{ color: "#6b6862" }}>
           {t("einstellungen.preisHinweis", {
@@ -207,7 +208,7 @@ export function ScreenEinstellungen() {
         {sortiertePreise.length === 0 ? (
           <p className="py-2 text-[0.875rem]" style={{ color: "#6b6862" }}>{t("einstellungen.keinePreise")}</p>
         ) : (
-          <div className="divide-y border-y" style={{ borderColor: "#e3ded4" }}>
+          <div className="divide-y border-y" style={{ borderColor: "#e1e5df" }}>
             {sortiertePreise.map((preis) => (
               <div key={preis.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
                 <span className="tnum w-28 text-[0.875rem]">{preis.gueltigAb}</span>
@@ -222,7 +223,7 @@ export function ScreenEinstellungen() {
         )}
       </section>
 
-      <section className="space-y-3 border-t pt-4" style={{ borderColor: "#c9c3b6" }}>
+      <section className="surface-card space-y-3 p-4 sm:p-5">
         <h3 className="text-[1rem] font-semibold">{t("einstellungen.verteilung")}</h3>
         <Feld label={t("einstellungen.verteilSchluessel")}>
           <Auswahl
@@ -236,7 +237,7 @@ export function ScreenEinstellungen() {
         </Feld>
       </section>
 
-      <section className="space-y-3 border-t pt-4" style={{ borderColor: "#c9c3b6" }}>
+      <section className="surface-card space-y-3 p-4 sm:p-5">
         <h3 className="text-[1rem] font-semibold">{t("einstellungen.pdf")}</h3>
         <Feld label={t("einstellungen.objektName")}>
           <Eingabe value={pdfDaten.objektName} onChange={(e) => { setPdfDaten({ ...pdfDaten, objektName: e.target.value }); setPdfGespeichert(false); }} />
@@ -257,6 +258,19 @@ export function ScreenEinstellungen() {
           </KnopfSekundaer>
           {pdfGespeichert ? <p role="status" className="text-[0.8125rem]" style={{ color: "#1f6f3f" }}>{t("einstellungen.pdfGespeichert")}</p> : null}
         </div>
+      </section>
+
+      <section className="surface-card space-y-3 p-4 sm:p-5">
+        <h3 className="text-[1rem] font-semibold">{t("nav.konto")}</h3>
+        <p className="max-w-[65ch] text-[0.8125rem] leading-relaxed" style={{ color: "#6b6862" }}>
+          {t("cloud.hinweis")}
+        </p>
+        <Link
+          className="button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-[#c7cdc5] px-4 text-[0.9375rem] font-medium"
+          to="/konto"
+        >
+          {t("einstellungen.kontoCloudOeffnen")}
+        </Link>
       </section>
     </section>
   );

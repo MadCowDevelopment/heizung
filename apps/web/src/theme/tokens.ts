@@ -5,25 +5,22 @@
  * liefert die Werte fuer Stellen, die Farbe in JS brauchen (SVG, Inline-
  * Stile, Diagramme).
  *
- * Farbkontrast auf `--color-bench` (#faf8f4):
- *   warm    #c62828 -> 5.30:1
- *   kalt    #1565c0 -> 5.42:1
- *   energie #a34f00 -> 5.39:1  (Textvariante; #ef6c00 ist die Flaechenfarbe)
- *   ink-3   #6b6862 -> 5.24:1
+ * Die Fachfarbkontraste sind auf den hellen Oberflaechen abgestimmt.
+ * `energieInk` ist die lesbare Textvariante; `energie` bleibt Flaechenfarbe.
  */
 
 import type { MeterType } from "../domain/types";
 
 /** Farbpalette der Oberflaeche. */
 export const FARBEN = {
-  bench: "#faf8f4",
+  bench: "#f3f5f2",
   benchRaised: "#ffffff",
-  benchSunk: "#f2eee6",
+  benchSunk: "#edf0ec",
   ink: "#1b1a17",
   ink2: "#55524c",
   ink3: "#6b6862",
-  rule: "#e3ded4",
-  ruleStrong: "#c9c3b6",
+  rule: "#e1e5df",
+  ruleStrong: "#c7cdc5",
   warm: "#c62828",
   warmSoft: "#fbeceb",
   kalt: "#1565c0",

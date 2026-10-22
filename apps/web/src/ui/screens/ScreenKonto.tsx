@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatLocale } from "../format";
 import { useAppStore } from "../../state/store";
@@ -64,10 +65,21 @@ export function ScreenKonto() {
   };
 
   return (
-    <section className="pt-4 pb-10">
-      <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>{t("cloud.titel")}</h2>
-      <p className="mb-5 mt-1 max-w-[65ch] text-[0.875rem] leading-relaxed" style={{ color: "#6b6862" }}>{t("cloud.hinweis")}</p>
-      <div className="flex max-w-xl flex-col gap-4">
+    <section className="screen-stack">
+      <div className="page-heading">
+        <div>
+          <Link
+            className="mb-1 inline-flex min-h-11 items-center text-[0.8125rem] underline underline-offset-4"
+            style={{ color: "#55524c" }}
+            to="/einstellungen"
+          >
+            {t("einstellungen.zurueck")}
+          </Link>
+          <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>{t("cloud.titel")}</h2>
+        </div>
+      </div>
+      <div className="surface-card flex max-w-xl flex-col gap-4 p-4 sm:p-5">
+        <p className="max-w-[65ch] text-[0.875rem] leading-relaxed" style={{ color: "#6b6862" }}>{t("cloud.hinweis")}</p>
         <label className="flex flex-col gap-1">
           <span className="text-[0.75rem] font-medium uppercase tracking-[0.04em]" style={{ color: "#55524c" }}>{t("cloud.repo")}</span>
           <Eingabe value={repo} onChange={(event) => setRepo(event.target.value)} placeholder="owner/repo" autoComplete="off" />
@@ -85,7 +97,7 @@ export function ScreenKonto() {
         {user ? <p className="text-[0.8125rem]" style={{ color: "#1f6f3f" }}>{t("cloud.verbundenAls", { name: user })}</p> : null}
         {meldung ? <p role="status" className="text-[0.8125rem]" style={{ color: "#1f6f3f" }}>{meldung}</p> : null}
         {fehler ? <p role="alert" className="text-[0.8125rem]" style={{ color: "#b3261e" }}>{fehler}</p> : null}
-        <div className="border-t pt-3 text-[0.8125rem]" style={{ borderColor: "#e3ded4", color: "#55524c" }}>
+        <div className="border-t pt-3 text-[0.8125rem]" style={{ borderColor: "#e1e5df", color: "#55524c" }}>
           <p>{t("cloud.status")}: {t(`cloud.syncStatus.${syncStatus}`)}</p>
           {syncZuletzt ? <p>{t("cloud.zuletzt")}: {new Date(syncZuletzt).toLocaleString(formatLocale())}</p> : null}
           {user ? <p className="mt-2">{t("cloud.widerrufHinweis")}</p> : null}

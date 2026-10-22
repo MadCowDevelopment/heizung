@@ -81,6 +81,13 @@ function decodeBase64(value: string): string {
   return new TextDecoder().decode(bytes);
 }
 
+function isShaConflict(error: unknown): boolean {
+  if (!(error instanceof GitHubApiError)) return false;
+  if (error.status === 409) return true;
+  return error.status === 422 &&
+    /data\/state\.json does not match [a-f0-9]{40}\b/i.test(error.message);
+}
+
 export async function pruefeGitHubToken(token: string): Promise<string> {
   const response = await api(token, "/user");
   const user = (await response.json()) as { login?: string };
@@ -212,7 +219,7 @@ export async function synchronisiereZustand(
       await adapter.writeWithSha(path, JSON.stringify(next, null, 2), remoteFile?.sha ?? null);
       return next;
     } catch (error) {
-      if (!(error instanceof GitHubApiError) || error.status !== 409 || attempt === retries - 1) {
+      if (!isShaConflict(error) || attempt === retries - 1) {
         throw error;
       }
     }

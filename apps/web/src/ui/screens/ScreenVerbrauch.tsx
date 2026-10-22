@@ -7,6 +7,7 @@ import { kwhToMwh, litreToM3 } from "../../domain/calc/units";
 import { isValidISODate } from "../../domain/calc/dates";
 import { useAppStore } from "../../state/store";
 import { geld, zahl } from "../format";
+import { MeterChip } from "../components/MeterChip";
 import { KnopfSekundaer, Auswahl, Eingabe } from "../components/Primitives";
 
 type ZeitraumArt = "jahr" | "benutzerdefiniert" | "letzte";
@@ -107,8 +108,8 @@ export function ScreenVerbrauch() {
   };
 
   return (
-    <section className="pt-4 pb-10">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+    <section className="screen-stack">
+      <div className="page-heading">
         <div>
           <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>{t("verbrauch.titel")}</h2>
           <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{von} – {bis}</p>
@@ -121,7 +122,7 @@ export function ScreenVerbrauch() {
         </KnopfSekundaer>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-end gap-3">
+      <div className="surface-card flex flex-wrap items-end gap-3 p-4">
         <label className="flex flex-col gap-1 text-[0.75rem]" style={{ color: "#55524c" }}>
           {t("verbrauch.zeitraum")}
           <Auswahl value={art} onChange={(event) => setArt(event.target.value as ZeitraumArt)}>
@@ -150,15 +151,49 @@ export function ScreenVerbrauch() {
       </div>
 
       {!gueltigerZeitraum || !ergebnis ? (
-        <p role="alert" className="border-t py-3 text-[0.875rem]" style={{ borderColor: "#e3ded4", color: "#b3261e" }}>
+        <p role="alert" className="rounded-lg border px-4 py-3 text-[0.875rem]" style={{ borderColor: "#e1e5df", backgroundColor: "#ffffff", color: "#b3261e" }}>
           {t("verbrauch.zeitraumUngueltig")}
         </p>
       ) : (
       <>
       <h3 className="mb-2 text-[1rem] font-semibold" style={{ color: "#1b1a17" }}>{t("verbrauch.zaehler")}</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-[0.8125rem]">
-          <thead><tr style={{ borderBottom: "1px solid #c9c3b6" }}>
+      <div className="surface-card p-3 sm:p-4">
+        <div className="grid gap-3 md:hidden">
+          {ablesungenJeZaehler.map(({ zaehler: meter, start, ende, display, children }) => (
+            <article key={meter.id} className="surface-card--soft rounded-lg border p-3">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h4 className="font-medium">{meter.bezeichnung}</h4>
+                <MeterChip typ={meter.typ} klein />
+              </div>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[0.8125rem]">
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.start")}</dt><dd className="tnum">{zahl(start, 3)} {meter.einheit}</dd></div>
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.ende")}</dt><dd className="tnum">{zahl(ende, 3)} {meter.einheit}</dd></div>
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.delta")}</dt><dd className="tnum">{zahl(display, 3)} {meter.einheit}</dd></div>
+                <div className="col-span-2">
+                  <dt style={{ color: "#6b6862" }}>{t("verbrauch.abzug")}</dt>
+                  <dd>
+                    {children.length
+                      ? children.map(({ meter: child, delta }) => {
+                        const deduction = delta == null
+                          ? null
+                          : child.einheit === "MWh"
+                            ? kwhToMwh(delta)
+                            : litreToM3(delta);
+                        return `${child.bezeichnung}: ${zahl(deduction, 3)} ${child.einheit}`;
+                      }).join(", ")
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+          {!ablesungenJeZaehler.length ? (
+            <p className="text-[0.875rem]" style={{ color: "#6b6862" }}>{t("verbrauch.keineZaehler")}</p>
+          ) : null}
+        </div>
+        <div className="table-scroll hidden overflow-x-auto md:block">
+        <table className="min-w-[42rem] w-full border-collapse text-left text-[0.8125rem]">
+          <thead><tr style={{ borderBottom: "1px solid #c7cdc5" }}>
             <th className="py-2 pr-3">{t("verbrauch.zaehler")}</th>
             <th className="py-2 pr-3">{t("verbrauch.start")}</th>
             <th className="py-2 pr-3">{t("verbrauch.ende")}</th>
@@ -167,7 +202,7 @@ export function ScreenVerbrauch() {
           </tr></thead>
           <tbody>
             {ablesungenJeZaehler.map(({ zaehler: meter, start, ende, display, children }) => (
-              <tr key={meter.id} style={{ borderBottom: "1px solid #e3ded4" }}>
+              <tr key={meter.id} style={{ borderBottom: "1px solid #e1e5df" }}>
                 <td className="py-2 pr-3">{meter.bezeichnung} <span style={{ color: "#6b6862" }}>({meter.einheit})</span></td>
                 <td className="tnum py-2 pr-3 text-right">{zahl(start, 3)}</td>
                 <td className="tnum py-2 pr-3 text-right">{zahl(ende, 3)}</td>
@@ -187,12 +222,31 @@ export function ScreenVerbrauch() {
             {!ablesungenJeZaehler.length ? <tr><td className="py-3" colSpan={5}>{t("verbrauch.keineZaehler")}</td></tr> : null}
           </tbody>
         </table>
+        </div>
       </div>
 
       <h3 className="mb-2 mt-7 text-[1rem] font-semibold" style={{ color: "#1b1a17" }}>{t("verbrauch.verteilung")}</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-[0.8125rem]">
-          <thead><tr style={{ borderBottom: "1px solid #c9c3b6" }}>
+      <div className="surface-card p-3 sm:p-4">
+        <div className="grid gap-3 md:hidden">
+          {ergebnis.positionen.map((position) => (
+            <article key={position.bewohnerId} className="surface-card--soft rounded-lg border p-3">
+              <h4 className="mb-2 font-medium">{position.bewohnerName}</h4>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[0.8125rem]">
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.warm")}</dt><dd className="tnum">{zahl(position.wasserWarmM3, 3)} m³</dd></div>
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.kalt")}</dt><dd className="tnum">{zahl(position.wasserKaltM3, 3)} m³</dd></div>
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.energie")}</dt><dd className="tnum">{zahl(position.energieMWh, 3)} MWh</dd></div>
+                <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.anteil")}</dt><dd className="tnum">{zahl(position.anteilProzent, 2)} %</dd></div>
+                <div className="col-span-2"><dt style={{ color: "#6b6862" }}>{t("verbrauch.kosten")}</dt><dd className="tnum font-medium">{geld(position.kostenTheoretisch)}</dd></div>
+              </dl>
+            </article>
+          ))}
+          {!ergebnis.positionen.length ? (
+            <p className="text-[0.875rem]" style={{ color: "#6b6862" }}>{t("verbrauch.keineBewohner")}</p>
+          ) : null}
+        </div>
+        <div className="table-scroll hidden overflow-x-auto md:block">
+        <table className="min-w-[48rem] w-full border-collapse text-left text-[0.8125rem]">
+          <thead><tr style={{ borderBottom: "1px solid #c7cdc5" }}>
             <th className="py-2 pr-3">{t("verbrauch.bewohner")}</th>
             <th className="py-2 pr-3">{t("verbrauch.warm")}</th>
             <th className="py-2 pr-3">{t("verbrauch.kalt")}</th>
@@ -202,7 +256,7 @@ export function ScreenVerbrauch() {
           </tr></thead>
           <tbody>
             {ergebnis.positionen.map((p) => (
-              <tr key={p.bewohnerId} style={{ borderBottom: "1px solid #e3ded4" }}>
+              <tr key={p.bewohnerId} style={{ borderBottom: "1px solid #e1e5df" }}>
                 <td className="py-2 pr-3">{p.bewohnerName}</td>
                 <td className="tnum py-2 pr-3 text-right">{zahl(p.wasserWarmM3, 3)} m³</td>
                 <td className="tnum py-2 pr-3 text-right">{zahl(p.wasserKaltM3, 3)} m³</td>
@@ -214,8 +268,9 @@ export function ScreenVerbrauch() {
             {!ergebnis.positionen.length ? <tr><td className="py-3" colSpan={6}>{t("verbrauch.keineBewohner")}</td></tr> : null}
           </tbody>
         </table>
+        </div>
       </div>
-      <div className="mt-4 border-t pt-3 text-[0.8125rem]" style={{ borderColor: "#c9c3b6", color: "#55524c" }}>
+      <div className="surface-card surface-card--soft p-4 text-[0.8125rem]" style={{ color: "#55524c" }}>
         <p>{t("verbrauch.summe")}: {geld(ergebnis.theoretischGesamt)} · {t("verbrauch.preise")}: {zahl(preisMwh, 4)} €/MWh, {zahl(preisM3, 4)} €/m³</p>
         {ergebnis.globaleHinweise
           .filter((hinweis) =>

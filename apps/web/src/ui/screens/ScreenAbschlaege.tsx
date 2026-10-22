@@ -23,8 +23,8 @@ export function ScreenAbschlaege() {
   );
 
   return (
-    <section className="pt-4 pb-10">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+    <section className="screen-stack">
+      <div className="page-heading">
         <div>
           <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>{t("abschlaege.titel")}</h2>
           <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("abschlaege.jahresraster")}</p>
@@ -52,7 +52,7 @@ export function ScreenAbschlaege() {
         );
 
         return (
-          <article key={person.id} className="border-t py-4" style={{ borderColor: "#c9c3b6" }}>
+          <article key={person.id} className="surface-card p-4 sm:p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <h3 className="font-semibold" style={{ color: "#1b1a17" }}>{person.name}</h3>
@@ -82,7 +82,7 @@ export function ScreenAbschlaege() {
               plaene.map((plan) => {
                 const periodKeys = plan.rhythmus === "jaehrlich" ? [`${jahr}-01`] : MONATE.map((month) => `${jahr}-${month}`);
                 return (
-                  <div key={plan.id} className="mt-4 border-t pt-3" style={{ borderColor: "#e3ded4" }}>
+                  <div key={plan.id} className="mt-4 border-t pt-3" style={{ borderColor: "#e1e5df" }}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-[0.8125rem] font-medium" style={{ color: "#1b1a17" }}>
                         {geld(plan.betrag)} / {t(`bewohner.${plan.rhythmus}`)}
@@ -112,7 +112,7 @@ export function ScreenAbschlaege() {
                         ) ?? records.find((item) => !item.abschlagPlanId && item.faelligAm.slice(0, 7) === key);
                         const paid = Boolean(payment?.bezahltAm);
                         return (
-                          <div key={key} className="flex min-h-16 items-center justify-between gap-2 border-b px-1 py-2" style={{ borderColor: "#e3ded4" }}>
+                          <div key={key} className="surface-card--soft flex min-h-16 items-center justify-between gap-2 rounded-lg border px-3 py-2" style={{ borderColor: "#e1e5df" }}>
                             <div>
                               <p className="text-[0.8125rem] font-medium" style={{ color: "#1b1a17" }}>
                                 {plan.rhythmus === "jaehrlich" ? jahr : t(`abschlaege.monat${key.slice(-2)}`)}
@@ -144,7 +144,7 @@ export function ScreenAbschlaege() {
           </article>
         );
       })}
-      {!bewohner.length ? <p className="border-t py-4 text-[0.875rem]" style={{ borderColor: "#c9c3b6", color: "#6b6862" }}>{t("abschlaege.keineBewohner")}</p> : null}
+      {!bewohner.length ? <p className="border-t py-4 text-[0.875rem]" style={{ borderColor: "#c7cdc5", color: "#6b6862" }}>{t("abschlaege.keineBewohner")}</p> : null}
     </section>
   );
 }
@@ -165,7 +165,7 @@ function PlanForm({
   const [rhythmus, setRhythmus] = useState(startRhythmus);
   const [fehler, setFehler] = useState("");
   return (
-    <div className="mt-3 flex flex-wrap items-end gap-3 border-t py-3" style={{ borderColor: "#e3ded4" }}>
+    <div className="mt-3 flex flex-wrap items-end gap-3 border-t py-3" style={{ borderColor: "#e1e5df" }}>
       <label className="flex flex-col gap-1 text-[0.75rem]" style={{ color: "#55524c" }}>
         {t("abschlaege.betrag")}
         <Eingabe inputMode="decimal" value={betrag} onChange={(event) => setBetrag(event.target.value)} className="w-36" />

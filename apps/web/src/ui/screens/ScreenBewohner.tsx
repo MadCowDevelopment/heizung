@@ -49,8 +49,8 @@ export function ScreenBewohner() {
   const blattTraegtPrimaer = blatt !== null;
 
   return (
-    <div className="pt-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
+    <div className="screen-stack">
+      <div className="page-heading">
         <div>
           <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>
             {t("bewohner.titel")}
@@ -86,7 +86,7 @@ export function ScreenBewohner() {
       ) : null}
 
       {bewohner.length > 0 ? (
-        <div style={{ borderTop: "1px solid #c9c3b6" }}>
+        <div className="grid gap-3">
           {bewohner.map((b) => (
             <BewohnerZeile key={b.id} bewohner={b} onBlatt={setBlatt} />
           ))}
@@ -121,8 +121,8 @@ function BewohnerZeile({
 
   return (
     <div
-      className="py-3"
-      style={{ borderBottom: "1px solid #e3ded4", opacity: bewohner.aktiv ? 1 : 0.55 }}
+      className="surface-card p-4 sm:p-5"
+      style={{ opacity: bewohner.aktiv ? 1 : 0.65 }}
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-[1rem] font-medium" style={{ color: "#1b1a17" }}>
@@ -131,7 +131,7 @@ function BewohnerZeile({
         {bewohner.email ? (
           <a
             href={`mailto:${bewohner.email}`}
-            className="inline-flex min-h-11 items-center text-[0.8125rem] underline decoration-[#c9c3b6] underline-offset-4"
+            className="inline-flex min-h-11 items-center text-[0.8125rem] underline decoration-[#c7cdc5] underline-offset-4"
             style={{ color: "#55524c" }}
           >
             {bewohner.email}
@@ -275,7 +275,7 @@ function BewohnerBlatt({
   };
 
   return (
-    <div style={{ backgroundColor: "#f2eee6", borderTop: "1px solid #c9c3b6" }} className="px-4 py-4">
+    <div className="surface-card p-4 sm:p-5">
       <h3 className="mb-3 text-[1.0625rem] font-semibold" style={{ color: "#1b1a17" }}>
         {bewohnerId ? t("bewohner.bearbeiten") : t("bewohner.neu")}
       </h3>
@@ -328,14 +328,14 @@ function BewohnerBlatt({
               {t("bewohner.keineFreienZaehler")}
             </p>
           ) : (
-            <div style={{ borderTop: "1px solid #c9c3b6" }}>
+            <div style={{ borderTop: "1px solid #c7cdc5" }}>
               {freieZaehler.map((z) => {
                 const gewaehlt = zugeordnet.includes(z.id);
                 return (
                   <label
                     key={z.id}
                     className="flex min-h-11 cursor-pointer items-center gap-3"
-                    style={{ borderBottom: "1px solid #e3ded4" }}
+                    style={{ borderBottom: "1px solid #e1e5df" }}
                   >
                     <input
                       type="checkbox"
@@ -393,7 +393,7 @@ function AbschlagBlatt({ bewohnerId, onFertig }: { bewohnerId: string; onFertig:
   };
 
   return (
-    <div style={{ backgroundColor: "#f2eee6", borderTop: "1px solid #c9c3b6" }} className="px-4 py-4">
+    <div className="surface-card p-4 sm:p-5">
       <h3 className="mb-3 text-[1.0625rem] font-semibold" style={{ color: "#1b1a17" }}>
         {t("bewohner.abschlag")} – {bewohner?.name ?? ""}
       </h3>

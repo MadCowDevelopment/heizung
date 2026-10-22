@@ -1,13 +1,10 @@
 /**
- * Rahmen der Anwendung: Kopfzeile, Navigation, Meldungsband, Bildschirm.
- *
- * Die Kopfzeile ist die Werkbank-Kante: links das Gerät, rechts der
- * Speicherzustand. Die Navigation sitzt darunter als ruhige Reiter, weil sie
- * drei gleichwertige Werkzeuge benennt.
+ * Anwendungsrahmen: sichere Kopfzeile, responsive Navigation,
+ * Meldungsband und Ansichts-Routing.
  */
 
 import { useEffect } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../state/store";
 import { RICHTUNG } from "./direction";
@@ -31,12 +28,13 @@ const NAVIGATION = [
   { pfad: "/verbrauch", schluessel: "nav.verbrauch" },
   { pfad: "/abschlaege", schluessel: "nav.abschlaege" },
   { pfad: "/abrechnung", schluessel: "nav.abrechnung" },
-  { pfad: "/konto", schluessel: "nav.konto" },
   { pfad: "/einstellungen", schluessel: "nav.einstellungen" },
 ] as const;
 
 export function App() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const laden = useAppStore((s) => s.laden);
   const geladen = useAppStore((s) => s.geladen);
   const meldung = useAppStore((s) => s.meldung);
@@ -45,6 +43,13 @@ export function App() {
   const synchronisieren = useAppStore((s) => s.synchronisieren);
   const syncIntervall = useAppStore((s) => s.state.einstellungen.syncIntervallSekunden ?? 30);
   const syncStatus = useAppStore((s) => s.syncStatus);
+  const kontoAnsicht = location.pathname === "/konto";
+  const ausgewaehlterPfad =
+    location.pathname === "/dashboard"
+      ? "/"
+      : kontoAnsicht
+        ? "/einstellungen"
+        : NAVIGATION.find((eintrag) => eintrag.pfad === location.pathname)?.pfad ?? "/zaehler";
 
   useEffect(() => {
     void laden();
@@ -65,7 +70,7 @@ export function App() {
   }, [geladen, syncIntervall, synchronisieren]);
 
   return (
-    <div className="min-h-dvh" style={{ backgroundColor: "#faf8f4" }}>
+    <div className="min-h-dvh" style={{ backgroundColor: "var(--color-bench)" }}>
       {/* Der Richtungskontrakt überlebt den Produktionsbau. */}
       <div
         style={{ display: "none" }}
@@ -73,10 +78,10 @@ export function App() {
       />
 
       <header
-        className="sticky top-0 z-20"
+        className="app-header sticky top-0 z-20"
         style={{
-          backgroundColor: "#faf8f4",
-          borderBottom: "1px solid #e3ded4",
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid #e1e5df",
         }}
       >
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
@@ -91,30 +96,48 @@ export function App() {
           </div>
         </div>
 
-        <nav
-          className="mx-auto flex max-w-4xl gap-1 overflow-x-auto overflow-y-hidden px-2"
-          style={{ borderTop: "1px solid #e3ded4" }}
-          aria-label={t("nav.hauptnavigation")}
-        >
-          {NAVIGATION.map((eintrag) => (
-            <NavLink
-              key={eintrag.pfad}
-              to={eintrag.pfad}
-              end={eintrag.pfad === "/"}
-              className="relative flex min-h-11 shrink-0 items-center whitespace-nowrap px-3 py-2.5 text-[0.875rem] font-medium"
-              style={({ isActive }) => ({
-                color: isActive ? "#1b1a17" : "#6b6862",
-                borderBottom: isActive ? "2px solid #1b1a17" : "2px solid transparent",
-                marginBottom: "-1px",
-              })}
+        <nav aria-label={t("nav.hauptnavigation")}>
+          <div
+            className="mx-auto hidden max-w-4xl gap-1 overflow-x-auto overflow-y-hidden px-2 sm:flex"
+            style={{ borderTop: "1px solid #e1e5df" }}
+          >
+            {NAVIGATION.map((eintrag) => (
+              <NavLink
+                key={eintrag.pfad}
+                to={eintrag.pfad}
+                end={eintrag.pfad === "/"}
+                className="relative flex min-h-11 shrink-0 items-center whitespace-nowrap px-3 py-2.5 text-[0.875rem] font-medium"
+                style={({ isActive }) => {
+                  const active = isActive || (eintrag.pfad === "/einstellungen" && kontoAnsicht);
+                  return {
+                    color: active ? "#1b1a17" : "#6b6862",
+                    borderBottom: active ? "2px solid #1b1a17" : "2px solid transparent",
+                    marginBottom: "-1px",
+                  };
+                }}
+              >
+                {t(eintrag.schluessel)}
+              </NavLink>
+            ))}
+          </div>
+          <div className="mx-auto max-w-4xl px-4 pb-2 sm:hidden">
+            <select
+              aria-label={t("nav.hauptnavigation")}
+              className="field-line mobile-nav-select"
+              value={ausgewaehlterPfad}
+              onChange={(event) => navigate(event.currentTarget.value)}
             >
-              {t(eintrag.schluessel)}
-            </NavLink>
-          ))}
+              {NAVIGATION.map((eintrag) => (
+                <option key={eintrag.pfad} value={eintrag.pfad}>
+                  {t(eintrag.schluessel)}
+                </option>
+              ))}
+            </select>
+          </div>
         </nav>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4">
+      <main className="app-main mx-auto max-w-4xl px-4">
         {meldung ? (
           <Meldungszeile
             art={meldung.art}
