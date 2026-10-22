@@ -15,6 +15,8 @@ import {
   SCHEMA_VERSION,
   emptyState,
   type Ablesung,
+  type Abrechnung,
+  type AbrechnungStatus,
   type AbschlagPlan,
   type AppState,
   type Bewohner,
@@ -110,6 +112,9 @@ interface AppStore {
     abschlagPlanId?: string,
   ) => void;
   zahlungStornieren: (zahlungId: string) => void;
+  abrechnungSpeichern: (abrechnung: Abrechnung) => void;
+  abrechnungAbschliessen: (abrechnung: Abrechnung) => void;
+  abrechnungStatusSetzen: (abrechnungId: string, status: AbrechnungStatus) => void;
 
   // Bewohner (S4)
   bewohnerAnlegen: (daten: Omit<Bewohner, "id" | "updatedAt">) => string;
@@ -365,6 +370,49 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ...s.state,
         zahlung: s.state.zahlung.map((zahlung) =>
           zahlung.id === zahlungId ? { ...zahlung, deleted: true, updatedAt: jetzt() } : zahlung,
+        ),
+      },
+    }));
+    void get().speichern();
+  },
+
+  abrechnungSpeichern: (abrechnung) => {
+    set((s) => ({
+      state: {
+        ...s.state,
+        abrechnung: s.state.abrechnung.some((item) => item.id === abrechnung.id)
+          ? s.state.abrechnung.map((item) =>
+              item.id === abrechnung.id ? { ...abrechnung, updatedAt: jetzt() } : item,
+            )
+          : [...s.state.abrechnung, { ...abrechnung, updatedAt: jetzt() }],
+      },
+    }));
+    void get().speichern();
+  },
+
+  abrechnungAbschliessen: (abrechnung) => {
+    const abgeschlossen: Abrechnung = {
+      ...abrechnung,
+      status: "verteilt",
+      updatedAt: jetzt(),
+    };
+    set((s) => ({
+      state: {
+        ...s.state,
+        abrechnung: s.state.abrechnung.some((item) => item.id === abgeschlossen.id)
+          ? s.state.abrechnung.map((item) => item.id === abgeschlossen.id ? abgeschlossen : item)
+          : [...s.state.abrechnung, abgeschlossen],
+      },
+    }));
+    void get().speichern();
+  },
+
+  abrechnungStatusSetzen: (abrechnungId, status) => {
+    set((s) => ({
+      state: {
+        ...s.state,
+        abrechnung: s.state.abrechnung.map((item) =>
+          item.id === abrechnungId ? { ...item, status, updatedAt: jetzt() } : item,
         ),
       },
     }));
