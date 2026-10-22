@@ -25,7 +25,7 @@ Alles, was **einmal** gemacht werden muss, damit die App läuft. Stand: 21.10.20
 
 ```jsonc
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "bewohner": [], "zaehler": [], "ablesung": [], "abschlagPlan": [], "zahlung": [], "abrechnung": [],
   "preis": [ { "id": "p-default", "gueltigAb": "2026-01-01", "preisMWh": 0.1, "preisM3": 0 } ],
   "einstellungen": {

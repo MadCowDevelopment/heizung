@@ -1,0 +1,245 @@
+/**
+ * Tests des Anwendungszustands.
+ *
+ * Geprüft werden die Regeln, die nur im Zustand gelten: die Eindeutigkeit
+ * einer Ablesung je (Zähler, Tag) (R11), die Zyklenprüfung der
+ * „enthält"-Relation (R2), der weiche Verlauf und der CSV-Import.
+ */
+
+import { beforeEach, describe, expect, it } from "vitest";
+import { MemoryAdapter } from "../../storage/memory";
+import { STATE_PFAD, useAppStore } from "../store";
+import type { MeterUnit } from "../../domain/types";
+
+/** Setzt den Store auf einen leeren, mit Memory-Speicher versehenen Zustand. */
+async function frischerStore(): Promise<MemoryAdapter> {
+  const speicher = new MemoryAdapter();
+  await useAppStore.getState().laden(speicher);
+  useAppStore.setState({
+    state: {
+      ...useAppStore.getState().state,
+      bewohner: [],
+      zaehler: [],
+      ablesung: [],
+      abschlagPlan: [],
+      zahlung: [],
+    },
+    meldung: null,
+    entwurf: null,
+  });
+  return speicher;
+}
+
+/** Legt einen Zähler an. */
+function zaehlerAnlegen(
+  bezeichnung: string,
+  typ: "energie" | "wasser_warm" | "wasser_kalt" = "energie",
+) {
+  return useAppStore.getState().zaehlerAnlegen({
+    bezeichnung,
+    typ,
+    einheit: (typ === "energie" ? "MWh" : "m3") as MeterUnit,
+    bewohnerId: null,
+    enthaeltIds: [],
+    aktiv: true,
+  });
+}
+
+describe("Anwendungszustand", () => {
+  beforeEach(async () => {
+    await frischerStore();
+  });
+
+  it("legt Zähler an und ändert sie", () => {
+    const id = zaehlerAnlegen("Heizung Keller");
+    expect(useAppStore.getState().state.zaehler).toHaveLength(1);
+    useAppStore.getState().zaehlerAendern(id, { bezeichnung: "Heizung EG" });
+    expect(useAppStore.getState().state.zaehler[0].bezeichnung).toBe("Heizung EG");
+  });
+
+  it("deaktiviert Zähler, ohne sie zu löschen", () => {
+    const id = zaehlerAnlegen("Altzähler");
+    useAppStore.getState().zaehlerDeaktivieren(id, false);
+    const z = useAppStore.getState().state.zaehler[0];
+    expect(z.aktiv).toBe(false);
+    expect(z.deleted).toBeFalsy();
+  });
+
+  it("löscht Zähler weich (Verlauf bleibt erhalten)", () => {
+    const id = zaehlerAnlegen("Altzähler");
+    useAppStore.getState().zaehlerLoeschen(id);
+    const z = useAppStore.getState().state.zaehler[0];
+    expect(z.deleted).toBe(true);
+    expect(z.aktiv).toBe(false);
+  });
+
+  it("speichert je (Zähler, Tag) nur eine Ablesung (R11)", () => {
+    const id = zaehlerAnlegen("Heizung");
+    useAppStore.getState().ablesungSpeichern({
+      zaehlerId: id,
+      datum: "2026-01-15",
+      stand: 100,
+      unsicher: false,
+    });
+    useAppStore.getState().ablesungSpeichern({
+      zaehlerId: id,
+      datum: "2026-01-15",
+      stand: 111,
+      unsicher: true,
+      notiz: "korrigiert",
+    });
+
+    const ablesungen = useAppStore.getState().state.ablesung;
+    expect(ablesungen).toHaveLength(1);
+    expect(ablesungen[0].stand).toBe(111);
+    expect(ablesungen[0].unsicher).toBe(true);
+    expect(ablesungen[0].notiz).toBe("korrigiert");
+  });
+
+  it("hält Ablesungen an verschiedenen Tagen getrennt", () => {
+    const id = zaehlerAnlegen("Heizung");
+    useAppStore.getState().ablesungSpeichern({
+      zaehlerId: id,
+      datum: "2026-01-15",
+      stand: 100,
+      unsicher: false,
+    });
+    useAppStore.getState().ablesungSpeichern({
+      zaehlerId: id,
+      datum: "2026-02-15",
+      stand: 180,
+      unsicher: false,
+    });
+    expect(useAppStore.getState().state.ablesung).toHaveLength(2);
+  });
+
+  it("löscht Ablesungen weich", () => {
+    const id = zaehlerAnlegen("Heizung");
+    useAppStore.getState().ablesungSpeichern({
+      zaehlerId: id,
+      datum: "2026-01-15",
+      stand: 100,
+      unsicher: false,
+    });
+    const ablesungId = useAppStore.getState().state.ablesung[0].id;
+    useAppStore.getState().ablesungLoeschen(ablesungId);
+    expect(useAppStore.getState().state.ablesung[0].deleted).toBe(true);
+  });
+
+  it("lehnt eine enthält-Relation ab, die einen Zirkel erzeugt (R2)", () => {
+    const a = zaehlerAnlegen("A");
+    const b = zaehlerAnlegen("B");
+    const c = zaehlerAnlegen("C");
+
+    expect(useAppStore.getState().enthaeltSetzen(a, b, true)).toBe(true);
+    expect(useAppStore.getState().enthaeltSetzen(b, c, true)).toBe(true);
+    // C enthält A würde A→B→C→A erzeugen.
+    expect(useAppStore.getState().enthaeltSetzen(c, a, true)).toBe(false);
+
+    const zaehler = useAppStore.getState().state.zaehler;
+    expect(zaehler.find((z) => z.id === a)?.enthaeltIds).toEqual([b]);
+    expect(zaehler.find((z) => z.id === c)?.enthaeltIds).toEqual([]);
+    expect(useAppStore.getState().meldung?.art).toBe("warnung");
+  });
+
+  it("lehnt Selbstbezug ab", () => {
+    const a = zaehlerAnlegen("A");
+    expect(useAppStore.getState().enthaeltSetzen(a, a, true)).toBe(false);
+  });
+
+  it("verwaltet Bewohner und Abschlag", () => {
+    const bewohnerId = useAppStore.getState().bewohnerAnlegen({
+      name: "M. Muster",
+      email: "m@example.org",
+      aktiv: true,
+    });
+    useAppStore.getState().abschlagSetzen(bewohnerId, 42.5, "monatlich");
+    const plan = useAppStore.getState().state.abschlagPlan[0];
+    expect(plan.betrag).toBe(42.5);
+    expect(plan.rhythmus).toBe("monatlich");
+
+    // Derselbe Rhythmus überschreibt, ein anderer legt einen zweiten Plan an.
+    useAppStore.getState().abschlagSetzen(bewohnerId, 45, "monatlich");
+    expect(useAppStore.getState().state.abschlagPlan).toHaveLength(1);
+    useAppStore.getState().abschlagSetzen(bewohnerId, 500, "jaehrlich");
+    expect(useAppStore.getState().state.abschlagPlan).toHaveLength(2);
+  });
+
+  it("löst Zähler eines gelöschten Bewohners", () => {
+    const bewohnerId = useAppStore.getState().bewohnerAnlegen({ name: "X", aktiv: true });
+    const zaehlerId = zaehlerAnlegen("Heizung X");
+    useAppStore.getState().zaehlerAendern(zaehlerId, { bewohnerId });
+    useAppStore.getState().bewohnerLoeschen(bewohnerId);
+
+    const z = useAppStore.getState().state.zaehler[0];
+    expect(z.bewohnerId).toBeNull();
+    expect(useAppStore.getState().state.bewohner[0].deleted).toBe(true);
+  });
+
+  it("importiert Startablesungen aus CSV", () => {
+    zaehlerAnlegen("Heizung Keller");
+    const csv = [
+      "Zähler;Datum;Stand",
+      "Heizung Keller;01.01.2026;100,5",
+      "Heizung Keller;01.02.2026;180,0",
+    ].join("\n");
+
+    const ergebnis = useAppStore.getState().importStartablesungen(csv);
+    expect(ergebnis.gespeichert).toBe(2);
+    expect(ergebnis.fehler).toHaveLength(0);
+    expect(useAppStore.getState().state.ablesung).toHaveLength(2);
+  });
+
+  it("meldet Fehlerzeilen beim CSV-Import, ohne den Import zu verwerfen", () => {
+    zaehlerAnlegen("Heizung Keller");
+    const csv = [
+      "Zähler;Datum;Stand",
+      "Heizung Keller;01.01.2026;100,5",
+      "Unbekannt;01.02.2026;50",
+    ].join("\n");
+
+    const ergebnis = useAppStore.getState().importStartablesungen(csv);
+    expect(ergebnis.gespeichert).toBe(1);
+    expect(ergebnis.fehler).toHaveLength(1);
+    expect(useAppStore.getState().state.ablesung).toHaveLength(1);
+  });
+
+  it("schreibt den Zustand in den Speicher", async () => {
+    const speicher = new MemoryAdapter();
+    await useAppStore.getState().laden(speicher);
+    zaehlerAnlegen("Heizung");
+    await useAppStore.getState().speichern();
+
+    const roh = await speicher.read(STATE_PFAD);
+    expect(roh).toBeTruthy();
+    expect(JSON.parse(roh as string).zaehler).toHaveLength(1);
+  });
+
+  it("lädt einen gespeicherten Zustand wieder ein", async () => {
+    const speicher = new MemoryAdapter();
+    await useAppStore.getState().laden(speicher);
+    zaehlerAnlegen("Heizung");
+    await useAppStore.getState().speichern();
+
+    await useAppStore.getState().laden(speicher);
+    expect(useAppStore.getState().state.zaehler).toHaveLength(1);
+    expect(useAppStore.getState().state.zaehler[0].bezeichnung).toBe("Heizung");
+  });
+
+  it("verwirft einen leeren Speicher und meldet den Zustand „leer“", async () => {
+    const speicher = new MemoryAdapter();
+    await useAppStore.getState().laden(speicher);
+    expect(useAppStore.getState().state.zaehler).toHaveLength(0);
+    expect(useAppStore.getState().status).toBe("leer");
+  });
+
+  it("verwahrt den Entwurf im Zustand", () => {
+    const id = zaehlerAnlegen("Heizung");
+    useAppStore.getState().entwurfSetzen("2026-01-15", [
+      { zaehlerId: id, stand: "12,5", unsicher: false, notiz: "" },
+    ]);
+    expect(useAppStore.getState().entwurf?.eintraege).toHaveLength(1);
+    useAppStore.getState().entwurfVerwerfen();
+    expect(useAppStore.getState().entwurf).toBeNull();
+  });
+});

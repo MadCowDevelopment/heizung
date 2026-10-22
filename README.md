@@ -1,25 +1,142 @@
-# heizung
+# heizung – Heizungsabrechnung
 
 Web-App zur Erfassung von Heizungs-/Warmwasser- und Wasserzählerständen und zur jährlichen Kostenabrechnung für eine Wohngemeinschaft.
-Deployment: statisch auf GitHub Pages – **ohne eigenes Backend**. Datenspeicherung: privates GitHub-Repo (`data/state.json`) via REST API, Admin-Zugriff per GitHub-Fine-grained PAT, lokaler Offline-Cache (IndexedDB).
+Die App ist **local-first**: Sie läuft vollständig im Browser, speichert lokal und arbeitet
+ohne eigenes Backend.
 
-## Dokumente
+Das Repository ist **spec-first** aufgebaut: Die Dokumente in `docs/` sind die maßgebliche
+Spezifikation, der Code in `apps/web` setzt sie um. Bei Widersprüchen gilt das Dokument –
+nicht der Code.
 
-- [Anforderungen (Domänenmodell, Fachregeln, Screens)](docs/requirements.md)
-- [Architektur (Stack, Datenmodell, Cloud-Optionen, Sync, Deployment)](docs/architecture.md)
-- [Setup – einmalige Einrichtung (Daten-Repo, Pages, Token)](docs/setup.md)
+## Spezifikation
 
-## Status
+| Dokument | Inhalt |
+|---|---|
+| [`docs/requirements.md`](docs/requirements.md) | Zweck & Scope, Domänenmodell, Fachregeln R0–R11, Screens S1–S9, Datenmodell, Meilensteine M0–M3 (§6.4) |
+| [`docs/architecture.md`](docs/architecture.md) | Stack, Projektstruktur, Datenmodell, Berechnungs-Kern, Sync-Engine, PDF, Deployment (§11) |
+| [`docs/setup.md`](docs/setup.md) | Einmalige Einrichtung: Daten-Repo `MadCowDevelopment/heizung-data`, GitHub Pages, Fine-grained PAT |
+| [`PRODUCT.md`](PRODUCT.md) | Produktvision, Nutzerbild, Leitplanken |
+| [`DESIGN.md`](DESIGN.md) | Gestaltungssystem „Werkbank": Farbpalette, Typografie, Flächen, Regeln |
 
-Spezifikation erstellt, Daten-Repo und GitHub Pages eingerichtet. Offen: Zugriffstoken (einmalig, [setup.md](docs/setup.md) §3) und die Implementierung (Meilensteine M0–M3 in `docs/requirements.md` §6.4).
+Domänenmodell und Datenmodell stehen in `docs/requirements.md` §2 und §7; die Datenablage
+als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
 
-## Architektur-Überblick
+## Status: Meilenstein M0 („statischer Prototyp“)
 
-| Teil | Ort | Hosting |
-|---|---|---|
-| Frontend (Vite/React/TS, PWA) | `apps/web` | GitHub Pages (statisch) |
-| Login | Fine-grained PAT (nur Daten-Repo) | github.com (kein eigener Server) |
-| Daten | `data/state.json` in `MadCowDevelopment/heizung-data` | privates GitHub-Repo, Commits als Historie |
+Der aktuelle Stand entspricht **M0** laut [`docs/requirements.md` §6.4](docs/requirements.md).
+Kurzfassung:
 
-Die Berechnungslogik (`R0`–`R11`) liegt als reine Funktionen in `apps/web/src/domain` und ist unabhängig vom Store testbar.
-Das Frontend spricht ausschließlich über die `StorageAdapter`-Abstraktion mit dem Datenspeicher → Provider-Wechsel (z. B. Cloudflare Workers + D1) bleibt Konfiguration.
+**Umgesetzt und getestet**
+
+- **Web-App** unter `apps/web`: Vite + React + TypeScript, Tailwind CSS, `HashRouter`
+  (robuste Deep Links auf GitHub Pages ohne 404-Fallback).
+- **Zustandsverwaltung** mit zustand; jede Mutation schreibt sofort in den lokalen Speicher.
+- **Persistenz** über `StorageAdapter` – im Browser IndexedDB (Fallback: Arbeitsspeicher).
+- **i18n** mit i18next/react-i18next: deutsche und englische Kataloge sind **jeweils
+  schlüsselgleich** (164 Schlüssel), und die gesamte Bedienoberfläche ist über den Katalog
+  übersetzt – im Inneren wie in der Oberfläche steht kein fest verdrahteter deutscher Text.
+  Die Domänen- und Speicherschicht liefert dazu **sprachneutrale Codes** (plus Parameter);
+  erst die Oberfläche löst sie zum Text auf – so bleibt der Rechenkern frei von i18n.
+  Ein Sprachumschalter in der Oberfläche folgt laut `docs/requirements.md` §6.4 in M3.
+- **Domänenlogik** als reine Funktionen ohne UI- und Netzabhängigkeit: Periodenverbrauch je
+  Zähler, enthaltene Zähler mit Zyklusschutz, Verteilung nach Wasseranteil, Kosten mit
+  Preis-Historie, Plausibilitätsprüfungen, Jahresabrechnung (Verteilung nach Betreiberbetrag,
+  Abschläge, Saldo, Largest-Remainder-Rundung) sowie der Import von Startablesungen (CSV)
+  und der JSON-Export/-Import des Gesamtzustands – jeweils auf Domänenebene.
+- **Bedienoberfläche** für die Bildschirme S2 (Zähler), S3 (Ablesung) und S4 (Bewohner) –
+  inklusive Import von Startablesungen (CSV) und setzbarem Abschlagsplan je Bewohner.
+- **Testsuite** mit Vitest (12 Testdateien, 133 Tests) für Rechenkern, Im-/Export, Store
+  und die i18n-Katalog-Parität.
+
+**Noch nicht umgesetzt**
+
+- **Cloud-Sync ist nicht implementiert.** Die Daten liegen ausschließlich im IndexedDB des
+  Browsers. GitHub-Adapter, Sync-Engine (Queue, Last-Write-Wins, SHA-Merge) und
+  Token-Verwaltung sind für **M1** geplant – ebenso die Verbrauchs- und Verteilungsansicht
+  (**S5**) und das Zahlungsraster zu den Abschlagsplänen (**S6**).
+- **PDF-Ausgabe** (R10) und **CSV-Export der Abrechnung**: geplant für **M2**.
+- **Abrechnungsoberfläche (S7)** und **Dashboard (S1)**: geplant für **M2**.
+- **JSON-Backup in der Oberfläche** (Export/Import nach S8): die Domänenfunktionen
+  existieren und sind getestet, sind aber noch nicht an die Bedienoberfläche angebunden.
+- **PWA-Offline-Shell, Kamera/OCR-Belege, Preis-Historie-UI, Sprachumschalter**: geplant
+  für **M3** (siehe §6.4 der Anforderungen).
+
+Der Ziel-Stack inklusive TanStack Query, React Hook Form/Zod und `vite-plugin-pwa` steht in
+`docs/requirements.md` §6.1 – umgesetzt sind bisher die oben genannten Teile.
+
+## Web-App lokal starten
+
+Voraussetzung: Node.js 22 (siehe `.github/workflows/pages.yml`).
+
+```bash
+cd apps/web
+npm install        # Abhängigkeiten (Lockfile: package-lock.json)
+npm run dev        # Entwicklungsserver
+npm run build      # Typecheck + Produktionsbau nach apps/web/dist
+npm run test       # Vitest-Testsuite (einmalig)
+npm run typecheck  # TypeScript prüfen, ohne zu bauen
+```
+
+Weitere Skripte: `npm run preview` (gebauten Stand lokal ausliefern) und `npm run test:watch`
+(Tests im Watch-Modus).
+
+### Basis-Pfad `/heizung/`
+
+Die App ist als **Projektseite** gedacht und läuft deshalb unter dem Basis-Pfad
+`/heizung/`. Der Entwicklungsserver liefert sie entsprechend aus:
+
+```
+http://localhost:5173/heizung/
+```
+
+Der Basis-Pfad wird in `apps/web/vite.config.ts` gelesen:
+
+```ts
+const base = process.env.VITE_BASE_PATH ?? "/heizung/";
+```
+
+`VITE_BASE_PATH` steuert den Basis-Pfad; ohne die Umgebungsvariable gilt der Default
+`/heizung/`. Für einen anderen Deployment-Ort genügt also:
+
+```bash
+VITE_BASE_PATH=/mein-pfad/ npm run build
+```
+
+Im Deployment-Workflow setzt der Build-Schritt zusätzlich `VITE_DATA_REPO` auf das
+Daten-Repo `MadCowDevelopment/heizung-data`. Beides sind keine Geheimnisse; der
+Zugriffstoken wird nie gebaut, sondern zur Laufzeit in den Einstellungen eingegeben.
+
+## Deployment
+
+Statisch auf GitHub Pages, ohne eigenes Backend: `.github/workflows/pages.yml` baut
+`apps/web` bei jedem Push auf `master` (sowie manuell über `workflow_dispatch`) und
+veröffentlicht das Ergebnis nach <https://madcowdevelopment.github.io/heizung/>.
+
+## Projektstruktur
+
+```
+.
+├── .github/workflows/pages.yml   # Build + Deploy nach GitHub Pages
+├── docs/                         # Spezifikation (maßgeblich)
+│   ├── requirements.md           # Domänenmodell, Regeln R0–R11, Screens, Meilensteine
+│   ├── architecture.md           # Stack, Datenmodell, Sync, Deployment
+│   └── setup.md                  # Einmalige Einrichtung (Daten-Repo, Pages, Token)
+├── DESIGN.md                     # Gestaltungssystem „Werkbank" (Tokens + Regeln)
+├── apps/web/                     # Frontend (Vite + React + TypeScript)
+│   ├── src/
+│   │   ├── domain/               # Rechenkern als reine Funktionen
+│   │   │   ├── calc/             # R0–R9: Einheiten, Verbrauch, Verteilung, Kosten, Abrechnung
+│   │   │   ├── io/               # CSV (Startablesungen, Ablesungen) und JSON (Zustand)
+│   │   │   └── types.ts          # Domänenmodell (Entitäten, Schema-Version 4)
+│   │   ├── state/                # zustand-Store
+│   │   ├── storage/              # StorageAdapter: IndexedDB, Memory (kein GitHub-Adapter)
+│   │   ├── ui/                   # Screens und Bausteine
+│   │   ├── i18n/                 # de, en
+│   │   ├── test/                 # Test-Setup (Vitest/jsdom)
+│   │   └── theme/                # Farbtokens (warm = rot, kalt = blau, Energie = bernstein)
+│   └── vite.config.ts            # Basis-Pfad, Build- und Test-Konfiguration
+└── PRODUCT.md                    # Produktvision und Leitplanken
+```
+
+`domain` importiert nichts außer `domain` – die Rechenlogik bleibt dadurch isoliert
+testbar und unabhängig von Oberfläche und Speicher.

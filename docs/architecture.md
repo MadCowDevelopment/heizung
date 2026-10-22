@@ -143,7 +143,7 @@ apps/web/                    # Frontend → GitHub Pages
 
 ```jsonc
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "updatedAt": "2026-10-21T10:03:00Z",
   "bewohner": [
     { "id": "b1", "name": "…", "email": "…", "notiz": "", "aktiv": true, "farbe": "#c62828",
@@ -175,7 +175,8 @@ apps/web/                    # Frontend → GitHub Pages
 - `ablesung` ist pro `(zaehlerId, datum)` eindeutig → Upsert-Key.
 - `zaehler.enthaeltIds` als Array → Zyklenprüfung in der Domain-Schicht (schnell, testbar).
 - `ablesung.preisMwhGenutzt` = Preis-Snapshot (R9) → historische Berechnungen bleiben reproduzierbar.
-- `abrechnung.positionen` = eingefrorene Positionen → spätere Korrekturen verändern eine abgeschlossene Abrechnung nicht.
+- `abrechnung.positionen` = eingefrorene Positionen → spätere Korrekturen verändern eine abgeschlossene Abrechnung nicht. Die Hinweise einer Position werden als **Code-Objekte** eingefroren (`{ "code": "…", "params": { … } }`), damit die Oberfläche sie sprachneutral auflösen und die Anzeigesprache wechseln kann.
+- Meldungs-Codes benennen den **Sachverhalt, nicht die Anzeige**. Beispiel: `verteilung.fallbackKalt` bedeutet „es wurde auf den Kaltwasserzähler zurückgefallen" – der aktive Verteilungs-Schlüssel bleibt davon unberührt. Code und Katalogtext müssen dieselbe Sache bezeichnen; die Parität wird im Test festgeschrieben.
 - `einstellungen.datenRepo` → Ziel-Repo (`owner/repo`) in den Einstellungen konfigurierbar, damit das Frontend nicht fest verdrahtet ist.
 - Fotos/Belege: bleiben **lokal** im Browser (IndexedDB) – nicht im Daten-Repo (groß, binär, unnötig).
 - Schreibvorgang: **eine** JSON-Datei pro Sync → ein Commit, ein SHA, keine Teil-Konflikte.

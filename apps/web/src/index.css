@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+/*
+ * Werkbank – Gestaltungssystem der Heizungsabrechnung.
+ *
+ * Grundidee: ein Messwerkzeug, kein Dashboard. Die Oberfläche ist ein
+ * linierter Beleg: Zähler stehen als fortlaufende, durch Haarlinien getrennte
+ * Bänder auf einem warmen Papierton. Zahlen sind gesetzte Ziffern (Tabellenziffern),
+ * Einheiten stehen klein dahinter. Keine Kachelraster, keine Karten.
+ *
+ * Farbe ist ausschliesslich funktional: Warmwasser rot, Kaltwasser blau,
+ * Energie Bernstein (docs/architecture.md §10). Farbe steht nie allein -
+ * immer zusammen mit Symbol und Text.
+ */
+
+@theme {
+  /* Flaechen */
+  --color-bench: #faf8f4;
+  --color-bench-raised: #ffffff;
+  --color-bench-sunk: #f2eee6;
+
+  /* Schrift */
+  --color-ink: #1b1a17;
+  --color-ink-2: #55524c;
+  --color-ink-3: #6b6862;
+
+  /* Linien */
+  --color-rule: #e3ded4;
+  --color-rule-strong: #c9c3b6;
+
+  /* Fachfarben (Zaehlertypen) */
+  --color-warm: #c62828;
+  --color-warm-soft: #fbeceb;
+  --color-kalt: #1565c0;
+  --color-kalt-soft: #eaf1fb;
+  --color-energie: #ef6c00;
+  --color-energie-soft: #fdf0e3;
+  /* Textsichere Variante des Bernsteins (Kontrast >= 4.5:1 auf --color-bench) */
+  --color-energie-ink: #a34f00;
+
+  /* Zustand */
+  --color-ok: #1f6f3f;
+  --color-warn: #8a5a00;
+  --color-danger: #b3261e;
+
+  --font-sans:
+    "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Höhe der Kopfzeile. Die Werkzeugleiste in S3 hängt sich daran. */
+    --kopf-hoehe: 7.1rem;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bench);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    /* Formularfelder nicht automatisch vergrössern (mobil) */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Sichtbarer Fokus auf allen interaktiven Elementen (Tastaturbedienung). */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /*
+   * Eingabefeld als Formularlinie: kein Kasten, nur die Unterlinie.
+   *
+   * Breite, Innenabstand und Höhe stehen bewusst in der Basis-Schicht.
+   * Die Utilities des Elements (w-40, pr-10) liegen in der Utility-Schicht
+   * und gewinnen dort gegen jede spätere Regel der Utilities-Schicht –
+   * in der Utilities-Schicht selbst wären sie unterlegen.
+   */
+  input.field-line,
+  select.field-line,
+  textarea.field-line {
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--color-rule-strong);
+    border-radius: 0;
+    width: 100%;
+    padding: 0.25rem 0;
+    /* Trefferfläche: die Linie ist auch eine Taste (docs/requirements.md §5). */
+    min-height: 44px;
+  }
+}
+
+@layer utilities {
+  /* Ziffern untereinander fluchten - Pflicht für Stand- und Betragsspalten. */
+  .tnum {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* Feine Rasterlinie - der Beleg. */
+  .rule-b {
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .rule-t {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  /*
+   * Zustände des Formularfeldes. Aussehen und Maße stehen in der
+   * Basis-Schicht (siehe dort), damit die Utilities des Elements
+   * (w-40, pr-10) nicht von dieser Schicht überstimmt werden.
+   */
+  .field-line::placeholder {
+    color: var(--color-ink-3);
+  }
+
+  /* Die Linie wird kräftiger, nicht höher - die Höhe bleibt stabil. */
+  .field-line:focus-visible {
+    border-bottom-color: var(--color-ink);
+  }
+
+  .field-line:disabled {
+    color: var(--color-ink-3);
+    border-bottom-style: dotted;
+  }
+
+  /*
+   * Kontrollkästchen: die Taste misst 44 px, das Zeichen ist 20 px.
+   * Der sichtbare Kasten ist mit `-ml-3` an den linken Rand der
+   * Beschriftung gezogen, damit er bündig mit ihr steht.
+   */
+  .check-44 {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    /*
+     * Negative Ränder ziehen die 44-px-Taste auf die Breite des
+     * gezeichneten Kästchens (20 px) zusammen: der Rand des Kästchens
+     * steht bündig am linken Rand der Beschriftung, der Text beginnt
+     * 8 px danach. Die Taste selbst bleibt 44 x 44 px groß.
+     */
+    margin: 0 -12px 0 -12px;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 20px 20px;
+    cursor: pointer;
+  }
+
+  .check-44:not(:checked) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect x='1' y='1' width='18' height='18' rx='2' fill='none' stroke='%231b1a17' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+
+  .check-44:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect x='1' y='1' width='18' height='18' rx='2' fill='%231b1a17'/%3E%3Cpath d='M5.4 10.3l3 3 6.2-6.4' fill='none' stroke='%23faf8f4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+
+  .check-44:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 0;
+  }
+
+  /*
+   * Die Lauflinie des Erfassens (Richtung: „die Linie, die beim Erfassen
+   * weiterläuft“). Die Spur liegt sichtbar da; das Segment läuft nur
+   * weiter, solange etwas zu erfassen ist.
+   */
+  .lauflinie {
+    position: relative;
+    height: 3px;
+    overflow: hidden;
+    background-color: var(--color-rule);
+  }
+
+  .lauflinie::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 45%;
+    background-color: var(--color-ink);
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: opacity 150ms ease-out;
+  }
+
+  .lauflinie.laeuft::after {
+    opacity: 1;
+    animation: lauflinie 1400ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+}
+
+/* Die eine bewusste Bewegung der Oberfläche. */
+@keyframes lauflinie {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(222%);
+  }
+}
+
+/* Reduzierte Bewegung respektieren. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

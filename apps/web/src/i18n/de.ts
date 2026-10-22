@@ -1,0 +1,233 @@
+/**
+ * Deutsche Texte der Oberfläche.
+ *
+ * Schlüssel: `bereich.abschnitt`. Die englischen Gegenstücke liegen in
+ * `en.ts` mit identischer Struktur (docs/requirements.md §5: „UI Deutsch
+ * (i18n EN vorbereitet)").
+ */
+
+export const de = {
+  app: {
+    titel: "Heizungsabrechnung",
+    laden: "Daten werden geladen …",
+  },
+  allg: {
+    fertig: "Fertig",
+    zahlBeispiel: "0,000",
+    geldBeispiel: "0,00",
+  },
+  nav: {
+    zaehler: "Zähler",
+    ablesung: "Ablesung",
+    bewohner: "Bewohner",
+  },
+  typ: {
+    energie: "Energie",
+    wasser_warm: "Warmwasser",
+    wasser_kalt: "Kaltwasser",
+  },
+  meter: {
+    bezeichnung: "Bezeichnung",
+    typ: "Typ",
+    besitzer: "Besitzer",
+    besitzerKeiner: "Gemeinschaft",
+    enthaelt: "enthält",
+    letzterStand: "Letzter Stand",
+    keineAblesung: "noch keine Ablesung",
+    inaktiv: "inaktiv",
+    ablesestelle: "Ableseort",
+    datum: "Datum",
+    startstand: "Startstand",
+    neuerZaehler: "Neuer Zähler",
+    zaehlerBearbeiten: "Zähler bearbeiten",
+    speichern: "Speichern",
+    abbrechen: "Abbrechen",
+    deaktivieren: "Deaktivieren",
+    aktivieren: "Aktivieren",
+    loeschen: "Löschen",
+    gemeinschaft: "Gemeinschaftszähler",
+    enthaeltRelation: "Enthaltene Zähler",
+    enthaeltHinweis:
+      "Ein Zähler, der andere enthält, wird nicht zusätzlich abgerechnet. Sein Verbrauch steckt schon im übergeordneten Zähler.",
+    struktur: "Struktur",
+    zaehlerwechsel: "Zählerwechsel",
+    zaehlerwechselHinweis:
+      "Der neue Zähler beginnt mit dem angegebenen Startstand. Der alte Zähler wird geschlossen.",
+    zaehlerwechselDatumHinweis:
+      "Leer lassen, um das Datum der letzten Ablesung zu übernehmen.",
+    altenSchliessen: "Alten Zähler schließen",
+    neuerAnlegen: "Neuen Zähler anlegen",
+    neuerAngelegt: "Neuer Zähler „{{name}}“ angelegt.",
+    startstandNotiz: "Startstand bei Zählerwechsel.",
+    startstandHinweis:
+      "Wird als Ablesung angelegt, damit der Verbrauch ab dem Wechsel berechnet werden kann.",
+    startstandFehlt: "Bitte den Startstand angeben.",
+    startstandUngueltig: "Der Startstand ist keine gültige Zahl.",
+    bezeichnungFehlt: "Bitte eine Bezeichnung angeben.",
+    bezeichnungBeispiel: "z. B. Heizung Keller",
+    ablesestelleBeispiel: "z. B. Keller, Haus 3",
+    entfernt: "{{name}} wurde entfernt.",
+    zirkel: "Zirkel",
+    keineWeiteren: "Keine weiteren Zähler vorhanden.",
+    startablesungen: "Startablesungen",
+    startablesungenHinweis:
+      "CSV mit den Spalten Zähler, Datum und Stand. Vorhandene Tage werden überschrieben.",
+    dateiWaehlen: "Datei wählen",
+    importiert_one: "{{count}} Eintrag importiert.",
+    importiert_other: "{{count}} Einträge importiert.",
+    importMitFehlern_one: "{{count}} Eintrag importiert, {{fehler}} Fehlerzeile.",
+    importMitFehlern_other: "{{count}} Einträge importiert, {{fehler}} Fehlerzeilen.",
+    leer: "Noch keine Zähler angelegt.",
+    leerHinweis:
+      "Lege den ersten Zähler an – Ablesungen, Bewohner und Abschläge hängen daran.",
+    anzahlText_one: "{{count}} Zähler",
+    anzahlText_other: "{{count}} Zähler",
+  },
+  ablesung: {
+    titel: "Ablesung erfassen",
+    datum: "Datum",
+    stand: "Stand",
+    standAktuell: "Aktueller Stand",
+    unsicher: "unleserlich / geschätzt",
+    notiz: "Notiz",
+    speichern: "Alle speichern",
+    verwerfen: "Verwerfen",
+    entwerf: "Entwurf",
+    entwerfHinweis: "Der Entwurf bleibt erhalten, bis du speicherst oder verwirfst.",
+    vergangenheitErlaubt: "Vergangene Daten sind erlaubt.",
+    keineZaehler: "Keine aktiven Zähler vorhanden.",
+    verstecken: "Ausblenden",
+    verlauf: "Verlauf",
+    keinVerlauf: "Noch keine Ablesung erfasst.",
+    geloescht: "Ablesung gelöscht.",
+    einblenden: "Einblenden",
+    loeschen: "Löschen",
+    entwurfGesichert: "Entwurf gesichert. Du kannst später weitermachen.",
+    speichernFehler_one:
+      "{{count}} Eintrag konnte nicht gespeichert werden (keine gültige Zahl).",
+    speichernFehler_other:
+      "{{count}} Einträge konnten nicht gespeichert werden (keine gültige Zahl).",
+    gespeichertUeberschrieben: "{{saved}} gespeichert, {{ueberschrieben}} überschrieben.",
+    gespeichertAnzahl_one: "{{count}} Ablesung gespeichert.",
+    gespeichertAnzahl_other: "{{count}} Ablesungen gespeichert.",
+    keineZaehlerHinweis:
+      "Ohne Zähler lässt sich nichts ablesen. Lege zuerst einen Zähler an.",
+  },
+  bewohner: {
+    titel: "Bewohner",
+    name: "Name",
+    email: "E-Mail",
+    notiz: "Notiz",
+    inaktiv: "inaktiv",
+    zaehlerZugeordnet: "Zugeordnete Zähler",
+    abschlag: "Abschlag",
+    abschlagBetrag: "Betrag",
+    abschlagRhythmus: "Rhythmus",
+    monatlich: "monatlich",
+    jaehrlich: "jährlich",
+    keinAbschlag: "kein Abschlag",
+    speichern: "Speichern",
+    abbrechen: "Abbrechen",
+    neu: "Bewohner anlegen",
+    bearbeiten: "Bewohner bearbeiten",
+    deaktivieren: "Deaktivieren",
+    aktivieren: "Aktivieren",
+    leer: "Noch keine Bewohner angelegt.",
+    keinZaehler: "kein Zähler",
+    keineFreienZaehler: "Alle Zähler sind bereits vergeben.",
+    abschlagEntfernen: "Abschlag entfernen",
+    zaehlerHinweis:
+      "Ein Zähler, der bereits einem Bewohner gehört, kann nicht doppelt vergeben werden.",
+    anzahlText_one: "{{count}} Bewohner",
+    anzahlText_other: "{{count}} Bewohner",
+    inaktivAnzeigen: "inaktive Bewohner anzeigen",
+    letzteZahlung: "Letzte Zahlung",
+    zahlungOffen: "offen",
+    nameFehlt: "Bitte einen Namen angeben.",
+    betragUngueltig: "Bitte einen gültigen Betrag angeben.",
+    abschlagGespeichert: "Abschlag gespeichert.",
+    abschlagEntfernt: "Abschlag entfernt.",
+    gespeichert: "„{{name}}“ gespeichert.",
+    leerHinweis:
+      "Lege den ersten Bewohner an – Zähler und Abschläge hängen daran.",
+  },
+  import: {
+    zeile: "Zeile",
+    grund: "Grund",
+  },
+  csv: {
+    spalteZaehlerFehlt: "Spalte „Zähler“ fehlt.",
+    spalteDatumFehlt: "Spalte „Datum“ fehlt.",
+    spalteStandFehlt: "Spalte „Stand“ fehlt.",
+    unbekannterZaehler: "Unbekannter Zähler „{{name}}“.",
+    ungueltigesDatum: "Ungültiges Datum „{{wert}}“.",
+    ungueltigerStand: "Ungültiger Stand „{{wert}}“.",
+    ueberschrieben: "Überschrieben.",
+  },
+  json: {
+    keinGueltigesJson: "Die Datei ist kein gültiges JSON.",
+    keinDatenobjekt: "Die Datei enthält kein gültiges Datenobjekt.",
+    schemaVersion:
+      "Die Datei hat Schema-Version {{datei}}, diese App unterstützt {{appVersion}}. Bitte die App aktualisieren.",
+  },
+  plausibilitaet: {
+    unvollstaendig:
+      "Für „{{name}}“ fehlt eine Start- oder Endablesung im Zeitraum – nicht abrechenbar.",
+    negativ:
+      "„{{name}}“ hat einen negativen Verbrauch ({{wert, number(minimumFractionDigits:2)}}) – Zählerwechsel oder Fehlablesung prüfen.",
+    ausreisser:
+      "„{{name}}“ liegt mit {{wert, number(minimumFractionDigits:2)}} über dem {{faktor}}-fachen des Medians ({{median, number(minimumFractionDigits:2)}}) der Vorperioden.",
+  },
+  abrechnung: {
+    zaehlerUnvollstaendig:
+      "Zähler „{{name}}“ ist für den Zeitraum unvollständig – wird nicht abgerechnet.",
+    keineVerteilungsbasisEnergie:
+      "Für die Energieverteilung fehlt die Basis (kein Wasserverbrauch) – bitte Administrator fragen (Vorschlag: gleiche Verteilung).",
+    keineVerteilungsbasisWarm:
+      "Für den Gemeinschafts-Warmwasserzähler fehlt die Verteilungsbasis – bitte Administrator fragen.",
+    keinEigenerZaehler: "Kein eigener Wasserzähler – von der Verteilung ausgenommen.",
+    keineTheoretischenKosten:
+      "Keine theoretischen Kosten als Verteilungsbasis – Betreiberbetrag gleichmäßig verteilt.",
+    offeneAbschlaege:
+      "Offene Abschläge über {{betrag, currency(EUR)}} im Jahr – nicht verrechnet.",
+  },
+  verteilung: {
+    // Der Code benennt den Zähler, auf den zurückgefallen wurde.
+    fallbackWarm: "Kein Zähler des aktiven Verteilungs-Schlüssels – Verteilung nach Warmwasser.",
+    fallbackKalt: "Kein Zähler des aktiven Verteilungs-Schlüssels – Verteilung nach Kaltwasser.",
+    administratorfrage:
+      "Kein Wasserverbrauch als Verteilungsbasis – bitte Administrator fragen (Vorschlag: gleiche Verteilung).",
+  },
+  speicher: {
+    indexeddbOeffnenFehlgeschlagen: "IndexedDB konnte nicht geöffnet werden.",
+    indexeddbTransaktionFehlgeschlagen: "IndexedDB-Transaktion fehlgeschlagen.",
+    indexeddbNichtVerfuegbar: "IndexedDB steht in dieser Umgebung nicht zur Verfügung.",
+    indexeddbBlockiert: "Anderer Tab blockiert die Datenbank.",
+    pfadLeer: "Pfad darf nicht leer sein.",
+  },
+  store: {
+    ladenFehler: "Daten konnten nicht geladen werden: {{reason}}",
+    ladenFehlerOhneGrund: "Daten konnten nicht geladen werden.",
+    speichernFehler: "Speichern fehlgeschlagen: {{reason}}",
+    speichernFehlerOhneGrund: "Speichern fehlgeschlagen.",
+    selbstEnthalten: "Ein Zähler kann sich nicht selbst enthalten.",
+    zirkel: "Diese Beziehung erzeugt einen Zirkel und wurde nicht gespeichert.",
+    zaehlerNichtGefunden: "Zähler nicht gefunden.",
+    ablesungUeberschrieben: "Ablesung überschrieben.",
+    ablesungGespeichert: "Ablesung gespeichert.",
+    importiert: "Daten importiert.",
+    importFehlgeschlagen: "Import fehlgeschlagen.",
+  },
+  meldung: {
+    schliessen: "Meldung schließen",
+  },
+  status: {
+    lokal: "Lokal gespeichert",
+    leer: "Noch keine Daten",
+    geladen: "Daten geladen",
+    fehler: "Speicherfehler",
+  },
+} as const;
+
+/** Struktur der Übersetzungen (für Typsicherheit). */
+export type DE = typeof de;

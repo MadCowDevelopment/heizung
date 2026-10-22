@@ -1,0 +1,26 @@
+# Abhängigkeiten
+node_modules/
+
+# Build-Ausgaben
+dist/
+dist-ssr/
+
+# Lokale Konfiguration und Umgebungen
+*.local
+.env
+.env.*
+!.env.example
+
+# Werkzeuge
+.vite/
+coverage/
+
+# Editoren
+.vscode/
+.idea/
+*.swp
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+desktop.ini
