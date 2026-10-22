@@ -3,42 +3,36 @@
  *
  * Der Text wird beim Start als HTML-Kommentar in das erzeugte Markup
  * geschrieben, damit die Gestaltungsrichtung im Produktionsbau nachvollziehbar
- * bleibt. Er ist Richtlinie, nicht Dokumentation - `DESIGN.md` beschreibt
- * spaeter den gebauten Stand.
+ * bleibt. `DESIGN.md` dokumentiert den gebauten Stand.
  */
 
 export const RICHTUNG = `
 THESIS
-Werkbank statt Dashboard: die App ist ein Messwerkzeug, kein Verwaltungs-
-spiel. Ein Verwalter liest Zaehler ab, und die Oberflaeche ist der Beleg,
-auf dem dieser Vorgang festgehalten wird.
+Eine klare mobile Arbeitsoberflaeche fuer zaehlbare Kosten: zuerst der
+naechste Handgriff, dann die nachvollziehbare Zahl. Sie verweigert
+Kennzahlen-Dashboards ohne Herleitung.
 
 OWN-WORLD
-Ein Keller in der Abendstunde. Eine Lampe ueber der Werkbank, Waelme, ein
-Werkzeugbrett, Kabel. Warmweisses Papierlicht, Graphitlinien, Tinte. Keine
-Glasflaechen, keine Neonfarben - die Raumfarbe ist gebrochenes Weiss.
-Gearbeitet wird mit wenigen, praezisen Werkzeugen.
+Ein zeitgemaesses Verwaltungswerkzeug: ruhiger graugruener Grund, weisse
+Funktionskarten, klare dunkle Schrift, kompakte Rundungen und dezente
+Tiefenstaffelung. Rot, Blau und Bernstein bleiben ausschliesslich
+fachlichen Zaehlerarten zugeordnet.
 
 STORY
-Ein Verwaltungsobmann sitzt mit dem Handy im Keller. Er erfasst eine
-Wasserablesung, unterbricht, kommt spaeter zurueck und erfasst die
-Energieablesung. Am Ende des Ablesetages steht eine saubere, pruefbare
-Liste. Die App muss Unsicherheit aushalten, ohne sie zu verstecken.
+Eine Verwaltungsperson erfasst im Keller einhaendig Staende und prueft
+spaeter am Schreibtisch Verbrauch, Abschlaege und Abrechnung. Jede Liste
+bleibt lesbar und jede Zahl nachvollziehbar.
 
 FIRST VIEWPORT
-Ein ruhiger Kopf mit dem Geraetekasten der Wohnung: flache Linien, keine
-Kacheln, links der Haushalt, rechts die Zaehler als schmale Typstreifen
-mit Farbe, Glyphe und Wort. Darunter das Werkzeug, das gerade gebraucht
-wird: erfassen, pruefen, speichern.
+Eine feste Kopfzeile mit direktem Zugriff auf alle Ansichten, darunter
+Dashboard-Titel und leicht erreichbare Primaeraktion. Verbrauch und offene
+Abschlaege stehen in zwei kompakten Kennzahlenkarten, danach folgen
+Bewohnerkosten. Konto und Cloud sind als Unterseite in den Einstellungen
+erreichbar, nicht als eigener Hauptnavigationspunkt.
 
 FORM
-Ein durchgehender, linierter Beleg. Zeilen trennen feine Haarlinien, Werte
-stehen in Tabellenziffern rechtsbuendig, Einheiten klein dahinter. Farbe
-traegt Bedeutung und nie allein - immer Glyphe und Wort dazu. Genau eine
-bewusste Bewegung: die Linie, die beim Erfassen weiterlaeuft.
-Konzept-Seed: aa27a2b2 (Modus operate, zugewiesener Index 3). Das Blatt
-kommt aus der eigenen geerdeten Liste; kein Katalog-Challenger wurde
-uebernommen. Die uebernommene Buehne ist "data-dramaturgy-sweep-and-decay":
-die Erfassung laeuft als Streifen ueber den Beleg, der bei jedem Durchgang
-einen Eintrag erneuert.
+Mobile-first Karten und strukturierte Listen tragen alle Ansichten.
+Formularfelder und Aktionen haben klare 44px-Trefferflaechen; Messwerte
+nutzen Monospace. Fachfarben bleiben immer mit Glyphe und Wort gekoppelt.
+Konzept-Seed uebersprungen; die Richtung entstand aus Anfrage und Produktkontext.
 `.trim();

@@ -66,9 +66,9 @@ export function ScreenZaehler() {
     blatt?.art === "form" || blatt?.art === "wechsel" || blatt?.art === "import";
 
   return (
-    <div className="pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
-        <div>
+    <div className="screen-stack">
+      <div className="page-heading">
+        <div className="grid gap-3">
           <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>
             {t("nav.zaehler")}
           </h2>
@@ -98,7 +98,7 @@ export function ScreenZaehler() {
           steht auch die Primaeraktion. Nur der neue Zaehler hat keine Zeile
           und bekommt das Blatt deshalb ueber der Liste. */}
       {blatt?.art === "form" && offenesForm === null ? (
-        <div className="mb-3">
+        <div className="surface-card p-4 sm:p-5">
           <ZaehlerForm zaehler={null} onFertig={() => setBlatt(null)} />
         </div>
       ) : null}
@@ -125,7 +125,7 @@ export function ScreenZaehler() {
           const istOffen = blatt !== null && "zaehlerId" in blatt && blatt.zaehlerId === z.id;
 
           return (
-            <div key={z.id} style={{ borderBottom: "1px solid #e3ded4" }}>
+            <div key={z.id} className="surface-card p-4 sm:p-5">
               <div className="flex items-start gap-3 py-3">
                 <Typstreifen typ={z.typ} />
 
@@ -299,7 +299,7 @@ function ZaehlerwechselBlatt({ zaehler, onFertig }: { zaehler: Zaehler; onFertig
   return (
     <div
       className="px-3 py-4 sm:px-4"
-      style={{ backgroundColor: "#f2eee6", borderTop: "1px solid #e3ded4" }}
+      style={{ backgroundColor: "#edf0ec", borderTop: "1px solid #e1e5df" }}
     >
       <p className="mb-3 text-[0.875rem] leading-relaxed" style={{ color: "#55524c" }}>
         {t("meter.zaehlerwechselHinweis")}

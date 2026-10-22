@@ -235,8 +235,8 @@ export function ScreenAbrechnung() {
   };
 
   return (
-    <section className="pt-4 pb-10">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+    <section className="screen-stack">
+      <div className="page-heading">
         <div>
           <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>{t("abrechnungUI.titel")}</h2>
           <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("abrechnungUI.untertitel")}</p>
@@ -246,7 +246,7 @@ export function ScreenAbrechnung() {
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-end gap-4 border-y py-4" style={{ borderColor: "#e3ded4" }}>
+      <div className="surface-card flex flex-wrap items-end gap-4 p-4 sm:p-5">
         <label className="flex flex-col gap-1 text-[0.75rem]" style={{ color: "#55524c" }}>
           {t("abrechnungUI.jahr")}
           <Eingabe type="number" min="2000" max="2200" value={jahr} onChange={(event) => setJahr(event.target.value)} className="w-32" />
@@ -300,7 +300,7 @@ export function ScreenAbrechnung() {
         </label>
       </div>
       {gespeicherte && gespeicherte.status !== "entwurf" ? (
-        <p className="border-b py-2 text-[0.8125rem]" style={{ borderColor: "#e3ded4", color: "#6b6862" }}>
+        <p className="border-b py-2 text-[0.8125rem]" style={{ borderColor: "#e1e5df", color: "#6b6862" }}>
           {t("abrechnungUI.positionenEingefroren")}
         </p>
       ) : null}
@@ -311,10 +311,10 @@ export function ScreenAbrechnung() {
         </p>
       ) : null}
       {!jahrGueltig ? (
-        <p role="alert" className="border-b py-3 text-[0.875rem]" style={{ borderColor: "#e3ded4", color: "#b3261e" }}>{t("abrechnungUI.jahrUngueltig")}</p>
+        <p role="alert" className="border-b py-3 text-[0.875rem]" style={{ borderColor: "#e1e5df", color: "#b3261e" }}>{t("abrechnungUI.jahrUngueltig")}</p>
       ) : ergebnis ? (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <div className="surface-card surface-card--soft flex flex-wrap items-center justify-between gap-3 p-4">
             <p className="text-[0.875rem]">
               {t("abrechnungUI.theoretisch")}: <strong className="tnum">{geld(theoretischeSumme)}</strong>
               {" · "}
@@ -326,24 +326,59 @@ export function ScreenAbrechnung() {
           </div>
 
           {preisabweichung !== 0 ? (
-            <p className="border-b pb-3 text-[0.8125rem]" style={{ borderColor: "#e3ded4", color: "#8a5a00" }}>
+            <p className="border-b pb-3 text-[0.8125rem]" style={{ borderColor: "#e1e5df", color: "#8a5a00" }}>
               {t("abrechnungUI.abweichung", { amount: geld(preisabweichung) })}
             </p>
           ) : null}
           {(!gespeicherte || gespeicherte.status === "entwurf") ? ergebnis.globaleHinweise.map((hinweis, index) => (
-            <p key={`${hinweis.code}-${index}`} className="border-b py-2 text-[0.8125rem]" style={{ borderColor: "#e3ded4", color: "#8a5a00" }}>
+            <p key={`${hinweis.code}-${index}`} className="border-b py-2 text-[0.8125rem]" style={{ borderColor: "#e1e5df", color: "#8a5a00" }}>
               {t(hinweis.code, hinweis.params)}
             </p>
           )) : null}
           {(!gespeicherte || gespeicherte.status === "entwurf") ? ergebnis.plausibilitaet.hinweise.map((hinweis, index) => (
-            <p key={`${hinweis.zaehlerId}-${index}`} className="border-b py-2 text-[0.8125rem]" style={{ borderColor: "#e3ded4", color: hinweis.blockierend ? "#b3261e" : "#8a5a00" }}>
+            <p key={`${hinweis.zaehlerId}-${index}`} className="border-b py-2 text-[0.8125rem]" style={{ borderColor: "#e1e5df", color: hinweis.blockierend ? "#b3261e" : "#8a5a00" }}>
               {t(hinweis.text.code, hinweis.text.params)}
             </p>
           )) : null}
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-[0.8125rem]">
-              <thead><tr style={{ borderBottom: "1px solid #c9c3b6" }}>
+          <div className="surface-card p-3 sm:p-4">
+            <div className="grid gap-3 md:hidden">
+              {positionenAnzeigen.map((position) => (
+                <article key={position.bewohnerId} className="surface-card--soft rounded-lg border p-3">
+                  <h4 className="mb-2 font-semibold">{position.bewohnerName}</h4>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[0.8125rem]">
+                    <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.warm")}</dt><dd className="tnum">{zahl(position.wasserWarmM3)} m³</dd></div>
+                    <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.kalt")}</dt><dd className="tnum">{zahl(position.wasserKaltM3)} m³</dd></div>
+                    <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.energie")}</dt><dd className="tnum">{zahl(position.energieMWh)} MWh</dd></div>
+                    <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.anteil")}</dt><dd className="tnum">{zahl(position.anteilProzent, 2)} %</dd></div>
+                    <div><dt style={{ color: "#6b6862" }}>{t("abrechnungUI.kosten")}</dt><dd className="tnum">{geld(position.rechnungsbetrag)}</dd></div>
+                    <div><dt style={{ color: "#6b6862" }}>{t("abrechnungUI.abschlaege")}</dt><dd className="tnum">{geld(position.summeAbschlaege)}</dd></div>
+                    <div className="col-span-2 border-t pt-2" style={{ borderColor: "#e1e5df" }}>
+                      <dt style={{ color: "#6b6862" }}>{t("abrechnungUI.saldo")}</dt>
+                      <dd className="tnum font-semibold">{geld(position.saldo)}</dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+              <article className="surface-card--soft rounded-lg border p-3" style={{ borderColor: "#c7cdc5" }}>
+                <h4 className="mb-2 font-semibold">{t("abrechnungUI.summe")}</h4>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[0.8125rem]">
+                  <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.warm")}</dt><dd className="tnum">{zahl(positionenAnzeigen.reduce((sum, p) => sum + p.wasserWarmM3, 0))} m³</dd></div>
+                  <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.kalt")}</dt><dd className="tnum">{zahl(positionenAnzeigen.reduce((sum, p) => sum + p.wasserKaltM3, 0))} m³</dd></div>
+                  <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.energie")}</dt><dd className="tnum">{zahl(positionenAnzeigen.reduce((sum, p) => sum + p.energieMWh, 0))} MWh</dd></div>
+                  <div><dt style={{ color: "#6b6862" }}>{t("verbrauch.anteil")}</dt><dd className="tnum">100 %</dd></div>
+                  <div><dt style={{ color: "#6b6862" }}>{t("abrechnungUI.kosten")}</dt><dd className="tnum">{geld(verteilteSumme)}</dd></div>
+                  <div><dt style={{ color: "#6b6862" }}>{t("abrechnungUI.abschlaege")}</dt><dd className="tnum">{geld(positionenAnzeigen.reduce((sum, p) => sum + p.summeAbschlaege, 0))}</dd></div>
+                  <div className="col-span-2 border-t pt-2" style={{ borderColor: "#e1e5df" }}>
+                    <dt style={{ color: "#6b6862" }}>{t("abrechnungUI.saldo")}</dt>
+                    <dd className="tnum font-semibold">{geld(positionenAnzeigen.reduce((sum, p) => sum + p.saldo, 0))}</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+            <div className="table-scroll hidden overflow-x-auto md:block">
+            <table className="min-w-[68rem] w-full border-collapse text-left text-[0.8125rem]">
+              <thead><tr style={{ borderBottom: "1px solid #c7cdc5" }}>
                 <th className="py-2 pr-3">{t("verbrauch.bewohner")}</th>
                 <th className="py-2 pr-3 text-right">{t("verbrauch.warm")}</th>
                 <th className="py-2 pr-3 text-right">{t("verbrauch.kalt")}</th>
@@ -355,7 +390,7 @@ export function ScreenAbrechnung() {
               </tr></thead>
               <tbody>
                 {positionenAnzeigen.map((position) => (
-                  <tr key={position.bewohnerId} style={{ borderBottom: "1px solid #e3ded4" }}>
+                  <tr key={position.bewohnerId} style={{ borderBottom: "1px solid #e1e5df" }}>
                     <td className="py-2 pr-3">{position.bewohnerName}</td>
                     <td className="tnum py-2 pr-3 text-right">{zahl(position.wasserWarmM3)} m³</td>
                     <td className="tnum py-2 pr-3 text-right">{zahl(position.wasserKaltM3)} m³</td>
@@ -366,7 +401,7 @@ export function ScreenAbrechnung() {
                     <td className="tnum py-2 text-right">{geld(position.saldo)}</td>
                   </tr>
                 ))}
-                <tr className="font-semibold" style={{ borderTop: "1px solid #c9c3b6" }}>
+                <tr className="font-semibold" style={{ borderTop: "1px solid #c7cdc5" }}>
                   <td className="py-2 pr-3">{t("abrechnungUI.summe")}</td>
                   <td className="tnum py-2 pr-3 text-right">{zahl(positionenAnzeigen.reduce((sum, p) => sum + p.wasserWarmM3, 0))} m³</td>
                   <td className="tnum py-2 pr-3 text-right">{zahl(positionenAnzeigen.reduce((sum, p) => sum + p.wasserKaltM3, 0))} m³</td>
@@ -378,9 +413,10 @@ export function ScreenAbrechnung() {
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 border-t py-4" style={{ borderColor: "#c9c3b6" }}>
+          <div className="flex flex-wrap gap-2">
             <KnopfPrimär onClick={entwurfSichern} disabled={!personBearbeitbar || !ergebnis.positionen.length}>
               {gespeicherte ? t("abrechnungUI.entwurfAktualisieren") : t("abrechnungUI.entwurfSpeichern")}
             </KnopfPrimär>
@@ -394,7 +430,7 @@ export function ScreenAbrechnung() {
         </>
       ) : null}
 
-      <section className="border-t py-4" style={{ borderColor: "#c9c3b6" }}>
+      <section className="surface-card p-4 sm:p-5">
         <h3 className="font-semibold">{t("abrechnungUI.pdfCsvTitel")}</h3>
         <p className="mt-1 text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("abrechnungUI.pdfCsvHinweis")}</p>
         {gespeicherte ? (
@@ -413,7 +449,7 @@ export function ScreenAbrechnung() {
               <KnopfSekundaer onClick={() => dateiSpeichern(abrechnungsCsv(gespeicherte), `abrechnung-${gespeicherte.jahr}.csv`)}>{t("abrechnungUI.csvExport")}</KnopfSekundaer>
             </div>
             {pdfUrl ? (
-              <div className="mt-4 border-t pt-4" style={{ borderColor: "#e3ded4" }}>
+              <div className="mt-4">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-[0.875rem] font-medium">{t("abrechnungUI.pdfVorschau")}</h4>
                   <div className="flex flex-wrap gap-2">
@@ -421,7 +457,7 @@ export function ScreenAbrechnung() {
                     <KnopfSekundaer onClick={() => void pdfTeilen()}>{t("abrechnungUI.pdfTeilen")}</KnopfSekundaer>
                   </div>
                 </div>
-                <iframe title={t("abrechnungUI.pdfVorschau")} src={pdfUrl} className="h-[70vh] w-full border" style={{ borderColor: "#c9c3b6" }} />
+                <iframe title={t("abrechnungUI.pdfVorschau")} src={pdfUrl} className="h-[70vh] w-full rounded-lg border" style={{ borderColor: "#c7cdc5" }} />
               </div>
             ) : null}
           </>
@@ -430,12 +466,12 @@ export function ScreenAbrechnung() {
         )}
       </section>
 
-      <section className="border-t py-4" style={{ borderColor: "#c9c3b6" }}>
+      <section className="surface-card p-4 sm:p-5">
         <h3 className="font-semibold">{t("abrechnungUI.backupTitel")}</h3>
         <p className="mt-1 text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("abrechnungUI.backupHinweis")}</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <KnopfSekundaer onClick={jsonExportieren}>{t("abrechnungUI.jsonExport")}</KnopfSekundaer>
-          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[3px] border px-4 text-[0.9375rem] font-medium" style={{ borderColor: "#c9c3b6", color: "#1b1a17" }}>
+          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border bg-white px-4 text-[0.9375rem] font-medium" style={{ borderColor: "#c7cdc5", color: "#1b1a17" }}>
             {t("abrechnungUI.jsonImport")}
             <input
               type="file"

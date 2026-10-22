@@ -1,10 +1,8 @@
 /**
  * S3 – Ablesung erfassen.
  *
- * Das Erfassungsfeld ist ein **durchgehender, linierter Beleg**: eine
- * Fläche, in der die Zähler als Bänder stehen – links die Farbe des Typs,
- * rechts der Wert, dazwischen der zuletzt gelesene Stand. Es ist keine
- * Kachelliste, sondern ein Blatt, das man abarbeitet.
+ * Das Erfassungsfeld ist eine Folge kompakter Zählerkarten: Typ, letzter
+ * Stand und Eingabe bleiben zusammen, damit es sich mobil zügig abarbeiten lässt.
  *
  * Die Bedienung ist für das Handy gedacht: Hochformat, große Tap-Flächen,
  * `inputmode="numeric"`, keine Einheiten-Eingabe, keine Trennzeichen (deutsche
@@ -17,6 +15,7 @@ import type { ISODate, MeterType, Zaehler } from "../../domain/types";
 import { today } from "../../domain/calc/dates";
 import { useAppStore, type EntwurfEintrag } from "../../state/store";
 import { IndexedDbAdapter } from "../../storage/indexeddb";
+import { zaehlerstandErkennen } from "../ocr";
 import { ablesungenVon, aktiveZaehler, letzteAblesung } from "../auswahl";
 import { datum, stand } from "../format";
 import { MeterChip, Typstreifen } from "../components/MeterChip";
@@ -39,18 +38,6 @@ interface Zeile {
   fotoKey?: string | null;
 }
 
-interface TextDetectionResult {
-  rawValue: string;
-}
-
-interface TextDetectorApi {
-  detect(image: ImageBitmap): Promise<TextDetectionResult[]>;
-}
-
-interface TextDetectorGlobal {
-  TextDetector?: new () => TextDetectorApi;
-}
-
 export function ScreenAblesung() {
   const { t } = useTranslation();
   const state = useAppStore((s) => s.state);
@@ -64,7 +51,7 @@ export function ScreenAblesung() {
   const [datumWert, setDatumWert] = useState<ISODate>(entwurf?.datum ?? today());
   const [zeilen, setZeilen] = useState<Map<string, Zeile>>(new Map());
   const [verlaufOffen, setVerlaufOffen] = useState<string | null>(null);
-  const [ocr, setOcr] = useState<Map<string, { busy: boolean; kandidaten: string[]; nichtVerfuegbar: boolean }>>(new Map());
+  const [ocr, setOcr] = useState<Map<string, { busy: boolean; kandidaten: string[] }>>(new Map());
 
   const zaehler = useMemo(
     () =>
@@ -206,8 +193,8 @@ export function ScreenAblesung() {
   };
 
   return (
-    <div className="pt-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
+    <div className="screen-stack">
+      <div className="page-heading">
         <div>
           <h2 className="text-[1.25rem] font-semibold" style={{ color: "#1b1a17" }}>
             {t("ablesung.titel")}
@@ -220,8 +207,7 @@ export function ScreenAblesung() {
 
       {/* Werkzeugleiste: Datum, Entwurf, Speichern */}
       <div
-        className="sticky top-[var(--kopf-hoehe)] z-10 -mx-4 mb-4 px-4 py-2 sm:-mx-4"
-        style={{ backgroundColor: "#faf8f4", borderBottom: "1px solid #e3ded4" }}
+        className="surface-card sticky top-[var(--kopf-hoehe)] z-10 -mx-2 px-3 py-3 sm:mx-0 sm:p-4"
       >
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
@@ -237,7 +223,7 @@ export function ScreenAblesung() {
               type="date"
               value={datumWert}
               onChange={(e) => setDatumWert(e.target.value)}
-              className="tnum w-40"
+              className="tnum w-full sm:w-40"
             />
           </div>
 
@@ -248,8 +234,8 @@ export function ScreenAblesung() {
             <Textaktion onClick={entwurfSichern}>{t("ablesung.entwerf")}</Textaktion>
           </div>
 
-          <div className="ml-auto flex items-center gap-2 pb-1">
-            <KnopfPrimär onClick={speichern}>{t("ablesung.speichern")}</KnopfPrimär>
+          <div className="w-full sm:ml-auto sm:w-auto">
+            <KnopfPrimär className="w-full sm:w-auto" onClick={speichern}>{t("ablesung.speichern")}</KnopfPrimär>
           </div>
         </div>
 
@@ -273,8 +259,7 @@ export function ScreenAblesung() {
         />
       ) : null}
 
-      {/* Der Beleg: ein durchgehendes Blatt, Bänder durch Haarlinien getrennt. */}
-      <div style={{ borderTop: "1px solid #c9c3b6" }}>
+      <div className="grid gap-3">
         {zaehler.map((z) => {
           const zeile = zeilen.get(z.id);
           const letzte = letzteAblesung(state.ablesung, z.id);
@@ -285,7 +270,7 @@ export function ScreenAblesung() {
           const versteckt = zeile?.versteckt ?? false;
 
           return (
-            <div key={z.id} style={{ borderBottom: "1px solid #e3ded4" }}>
+            <div key={z.id} className="surface-card p-3 sm:p-4">
               <div
                 className="flex items-start gap-3 py-3"
                 style={versteckt ? { opacity: 0.4 } : undefined}
@@ -418,8 +403,8 @@ export function ScreenAblesung() {
                 {ocr.get(z.id)?.busy ? (
                   <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("ablesung.ocrLaden")}</p>
                 ) : null}
-                {ocr.get(z.id)?.nichtVerfuegbar ? (
-                  <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("ablesung.ocrNichtVerfuegbar")}</p>
+                {fotoKey && ocr.get(z.id) && !ocr.get(z.id)?.busy && !ocr.get(z.id)?.kandidaten.length ? (
+                  <p className="text-[0.8125rem]" style={{ color: "#6b6862" }}>{t("ablesung.ocrKeineZiffern")}</p>
                 ) : null}
                 {ocr.get(z.id)?.kandidaten.map((wert) => (
                   <Textaktion key={wert} onClick={() => zeileSetzen(z.id, { wert })}>
@@ -513,43 +498,22 @@ export function ScreenAblesung() {
     setOcr((vorher) => new Map(vorher).set(zaehlerId, {
       busy: true,
       kandidaten: [],
-      nichtVerfuegbar: false,
     }));
-    const textDetector = (globalThis as typeof globalThis & TextDetectorGlobal).TextDetector;
-    if (!textDetector || typeof createImageBitmap !== "function") {
-      setOcr((vorher) => new Map(vorher).set(zaehlerId, {
-        busy: false,
-        kandidaten: [],
-        nichtVerfuegbar: true,
-      }));
-      return;
-    }
-    let bild: ImageBitmap | null = null;
     try {
-      bild = await createImageBitmap(blob);
-      const erkannteTexte = await new textDetector().detect(bild);
-      const kandidaten = [...new Set(
-        erkannteTexte.flatMap((eintrag) =>
-          eintrag.rawValue.match(/\d+(?:[.,]\d+)?/g) ?? [],
-        ).map((wert) => wert.replace(",", ".")),
-      )];
+      const kandidaten = await zaehlerstandErkennen(blob);
       setOcr((vorher) => new Map(vorher).set(zaehlerId, {
         busy: false,
         kandidaten,
-        nichtVerfuegbar: false,
       }));
     } catch {
       setOcr((vorher) => new Map(vorher).set(zaehlerId, {
         busy: false,
         kandidaten: [],
-        nichtVerfuegbar: false,
       }));
       meldungSetzen({
         art: "info",
         text: t("ablesung.ocrFehler"),
       });
-    } finally {
-      bild?.close();
     }
   }
 
@@ -566,7 +530,6 @@ export function ScreenAblesung() {
       setOcr((vorher) => new Map(vorher).set(zaehlerId, {
         busy: false,
         kandidaten: [],
-        nichtVerfuegbar: false,
       }));
     } catch (error) {
       meldungSetzen({
@@ -620,7 +583,7 @@ function FotoVorschau({ fotoKey }: { fotoKey: string }) {
     };
   }, [fotoKey, speicher]);
 
-  return url ? <img src={url} alt="" className="max-h-40 max-w-full rounded border object-contain" style={{ borderColor: "#e3ded4" }} /> : null;
+  return url ? <img src={url} alt="" className="max-h-40 max-w-full rounded border object-contain" style={{ borderColor: "#e1e5df" }} /> : null;
 }
 /** Verlauf der letzten Ablesungen eines Zählers (S3). */
 function Verlauf({ zaehlerId, onLoeschen }: { zaehlerId: string; onLoeschen: (id: string) => void }) {
@@ -643,7 +606,7 @@ function Verlauf({ zaehlerId, onLoeschen }: { zaehlerId: string; onLoeschen: (id
           <div
             key={a.id}
             className="flex items-baseline gap-3 border-b py-1.5 text-[0.8125rem]"
-            style={{ borderColor: "#e3ded4" }}
+            style={{ borderColor: "#e1e5df" }}
           >
             <span className="tnum w-24 shrink-0" style={{ color: "#6b6862" }}>
               {datum(a.datum)}

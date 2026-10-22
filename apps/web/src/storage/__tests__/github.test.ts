@@ -108,6 +108,57 @@ describe("GitHubStorageAdapter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it("re-reads and retries after GitHub's 422 SHA-mismatch response", async () => {
+    const remote = emptyState();
+    remote.updatedAt = "2026-01-01T00:00:00.000Z";
+    const contentResponse = (sha: string) =>
+      new Response(JSON.stringify({
+        content: btoa(JSON.stringify(remote)),
+        sha,
+      }));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(contentResponse("sha-old"))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        message: "data/state.json does not match b01c4953191759ea416fb62cf7bea3488bd377c8",
+      }), { status: 422 }))
+      .mockResolvedValueOnce(contentResponse("sha-current"))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ content: { sha: "sha-new" } })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const local = emptyState();
+    local.updatedAt = "2026-01-02T00:00:00.000Z";
+    const result = await synchronisiereZustand(
+      new GitHubStorageAdapter("test-token", "owner/repo"),
+      local,
+    );
+
+    expect(result.updatedAt).toBe(local.updatedAt);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const retriedPut = JSON.parse(fetchMock.mock.calls[3][1].body as string) as { sha: string };
+    expect(retriedPut.sha).toBe("sha-current");
+  });
+
+  it("does not retry unrelated GitHub 422 validation errors", async () => {
+    const remote = emptyState();
+    const local = emptyState();
+    local.updatedAt = "2100-01-02T00:00:00.000Z";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        content: btoa(JSON.stringify(remote)),
+        sha: "sha-current",
+      })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        message: "Invalid request body",
+      }), { status: 422 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(synchronisiereZustand(
+      new GitHubStorageAdapter("test-token", "owner/repo"),
+      local,
+    )).rejects.toThrow("Invalid request body");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("surfaces non-conflict GitHub errors", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ message: "Bad credentials" }), { status: 401 }),

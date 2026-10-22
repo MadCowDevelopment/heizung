@@ -78,8 +78,7 @@ export function ZaehlerForm({ zaehler, onFertig }: ZaehlerFormProps) {
 
   return (
     <div
-      className="px-3 py-4 sm:px-4"
-      style={{ backgroundColor: "#f2eee6", borderTop: "1px solid #e3ded4" }}
+      className="surface-editor px-3 py-4 sm:px-4"
     >
       <div className="flex flex-col gap-4">
         <Feld label={t("meter.bezeichnung")} id="f-bezeichnung">
@@ -187,8 +186,7 @@ export function EnthaeltBlatt({
 
   return (
     <div
-      className="px-3 py-4 sm:px-4"
-      style={{ backgroundColor: "#f2eee6", borderTop: "1px solid #e3ded4" }}
+      className="surface-editor px-3 py-4 sm:px-4"
     >
       <p className="mb-3 text-[0.875rem] leading-relaxed" style={{ color: "#55524c" }}>
         {t("meter.enthaeltHinweis")}
@@ -206,7 +204,7 @@ export function EnthaeltBlatt({
               <label
                 key={k.id}
                 className="flex min-h-12 cursor-pointer items-center gap-3 border-b py-2"
-                style={{ borderColor: "#e3ded4" }}
+                style={{ borderColor: "#e1e5df" }}
               >
                 <input
                   type="checkbox"
@@ -235,7 +233,7 @@ export function EnthaeltBlatt({
               key={knoten.zaehler.id}
               className="flex items-center gap-2 border-b py-1.5 text-[0.875rem]"
               style={{
-                borderColor: "#e3ded4",
+                borderColor: "#e1e5df",
                 paddingLeft: `${knoten.tiefe * 1.1}rem`,
                 color: knoten.zyklus ? "#b3261e" : "#1b1a17",
               }}

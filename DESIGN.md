@@ -1,27 +1,27 @@
 ---
-name: Werkbank Heizungsabrechnung
-description: A lined working-paper surface for meter readings — warm paper, graphite rules, one moving line.
+name: Heizungsabrechnung
+description: A mobile-first utility console for transparent meter readings and shared costs.
 colors:
-  bench: "#faf8f4"
-  bench-raised: "#ffffff"
-  bench-sunk: "#f2eee6"
+  canvas: "#f3f5f2"
+  surface: "#ffffff"
+  surface-soft: "#edf0ec"
   ink: "#1b1a17"
-  ink-2: "#55524c"
-  ink-3: "#6b6862"
-  rule: "#e3ded4"
-  rule-strong: "#c9c3b6"
+  ink-secondary: "#55524c"
+  ink-muted: "#6b6862"
+  line: "#e1e5df"
+  line-strong: "#c7cdc5"
   warm: "#c62828"
   warm-soft: "#fbeceb"
-  kalt: "#1565c0"
-  kalt-soft: "#eaf1fb"
-  energie: "#ef6c00"
-  energie-soft: "#fdf0e3"
-  energie-ink: "#a34f00"
-  ok: "#1f6f3f"
-  warn: "#8a5a00"
+  cold: "#1565c0"
+  cold-soft: "#eaf1fb"
+  energy: "#ef6c00"
+  energy-soft: "#fdf0e3"
+  energy-ink: "#a34f00"
+  success: "#1f6f3f"
+  warning: "#8a5a00"
   danger: "#b3261e"
 typography:
-  sans:
+  body:
     fontFamily: "Segoe UI, system-ui, -apple-system, Helvetica Neue, Arial, sans-serif"
     fontSize: "16px"
     fontWeight: 400
@@ -33,308 +33,201 @@ typography:
     lineHeight: 1.5
     letterSpacing: "-0.01em"
 rounded:
-  none: "0px"
-  hair: "1px"
-  soft: "2px"
+  control: "8px"
+  card: "14px"
   chip: "3px"
 spacing:
-  hairline: "1px"
-  tight: "0.25rem"
-  snug: "0.5rem"
+  tight: "0.5rem"
   base: "0.75rem"
   row: "1rem"
-  band: "1.5rem"
-  sheet: "2.5rem"
+  section: "1.25rem"
+  sheet: "2rem"
 components:
   button-primary:
     backgroundColor: "{colors.ink}"
-    textColor: "{colors.bench}"
-    typography: "{typography.sans}"
-    rounded: "{rounded.chip}"
+    textColor: "{colors.surface}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
     padding: "0.75rem 1rem"
     height: "44px"
   button-secondary:
-    backgroundColor: "transparent"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    typography: "{typography.sans}"
-    rounded: "{rounded.chip}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
     padding: "0.75rem 1rem"
     height: "44px"
-  text-action:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    typography: "{typography.sans}"
-    rounded: "{rounded.soft}"
-    padding: "0.5rem"
-    height: "44px"
-  field-line:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    typography: "{typography.sans}"
-    rounded: "{rounded.none}"
-    padding: "0.25rem 0"
-    height: "44px"
-  meter-chip:
-    backgroundColor: "{colors.energie-soft}"
-    textColor: "{colors.energie-ink}"
-    typography: "{typography.sans}"
-    rounded: "{rounded.chip}"
-    padding: "0.125rem 0.5rem"
-  type-stripe:
-    backgroundColor: "{colors.energie-ink}"
-    rounded: "{rounded.hair}"
-    width: "3px"
-  nav-item:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink-3}"
-    typography: "{typography.sans}"
-    padding: "0.625rem 0.75rem"
-    height: "44px"
-  sheet-band:
-    backgroundColor: "{colors.bench-sunk}"
-    rounded: "{rounded.none}"
+  card:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.card}"
     padding: "1rem"
+  field:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "0.5rem 0.75rem"
+    height: "44px"
 ---
 
-# Design System: Werkbank Heizungsabrechnung
+# Design System: Heizungsabrechnung
 
 ## Overview
 
-**Creative North Star: "Ein Keller in der Abendstunde"**
+**Creative North Star: "The Clear Utility Console"**
 
-Die Oberfläche ist kein Dashboard, sondern eine Werkbank. Ein Verwaltungsobmann
-liest im Keller Zähler ab, hält das Handy einhändig, hat schlechtes Licht und
-eine Handvoll Papier. Was auf dem Bildschirm erscheint, ist der Beleg, auf dem
-dieser Vorgang festgehalten wird: ein durchgehendes Blatt, durch feine
-Haarlinien in Bänder geteilt, Werte als gesetzte Ziffern, Einheiten klein
-dahinter. Es gibt keine Kacheln, keine Karten, keinen Glas-Look, kein Neon.
-Die Raumfarbe ist gebrochenes Weiß.
+This is a focused tool for the person who moves between a basement meter room
+and a desk where yearly costs are checked. The interface puts the next action
+within reach, then keeps readings, payments, and resident allocations easy to
+scan. Cards group related information without turning every row into a tile.
 
-Dichte entsteht nicht durch mehr Elemente, sondern durch weniger Linien pro
-Bedeutung: eine Linie trennt, ein Streifen markiert, eine Zahl trägt den Wert.
-Drei Farben sind gesetzt und tragen ausschliesslich Fachbedeutung — Warmwasser
-rot, Kaltwasser blau, Energie Bernstein (docs/architecture.md §10). Farbe steht
-nie allein, immer zusammen mit Glyphe und Wort. Es gibt genau eine Bewegung:
-die Lauflinie, die beim Erfassen weiterläuft, solange noch etwas fehlt.
+The visual language is contemporary and warm-neutral: a soft gray-green
+canvas, white work surfaces, dark readable type, rounded controls, and quiet
+depth. Meter colors remain reserved for their domain meaning—warm water, cold
+water, and energy. Numbers stay precise and aligned so every amount can be
+traced back to its source.
 
 **Key Characteristics:**
-- Liniert statt gekachelt: Trennung durch Haarlinien (`#e3ded4`), nie durch Rahmen.
-- Eine Fläche, drei Ebenen: Papier (`#faf8f4`), Vertiefung (`#f2eee6`), Schrift (`#1b1a17`).
-- Zahlen sind gesetzt: Monospace mit Tabellenziffern, rechtsbündig, Einheiten klein.
-- Farbe ist Fachinformation, nie Dekoration — und nie allein.
-- Genau eine Bewegung, und sie zeigt Arbeitsstand an.
-
-**Konzept-Seed:** Der Richtungskontrakt (`apps/web/src/ui/direction.ts`) führt im
-Block FORM den Seed `aa27a2b2` (Modus `operate`, zugewiesener Index 3). Der Roll
-wurde nicht übersprungen: `concept-seed.mjs --from aa27a2b2 --candidate-count 7`
-gibt ihn reproduzierbar aus. Das Blatt kommt aus der eigenen geerdeten Liste; ein
-Katalog-Challenger wurde nicht übernommen.
+- Mobile-first composition with a direct, accessible route to every screen.
+- White cards and structured lists separate tasks without hiding relationships.
+- Measured values use tabular monospace figures and retain their units.
+- Warm, cold, and energy colors always appear with a glyph and text label.
+- Touch controls are at least 44px high; device safe areas are respected.
 
 ## Colors
 
-Eine warme Papierpalette mit Graphit-Tinte und drei gesetzten Fachfarben; die
-Kontraste sind auf `#faf8f4` gemessen: jede Textfarbe liegt über 4,5:1, Linien
-und Flächen darunter.
-
-### Neutral
-- **Papier (bench)** (`#faf8f4`): die Grundfläche der gesamten App, gesetzt in diesem Design-System; die Fachfarben stehen in docs/architecture.md §10.
-- **Papier gehoben (bench-raised)** (`#ffffff`): Reserve für Flächen, die über der Grundlage liegen.
-- **Papier vertieft (bench-sunk)** (`#f2eee6`): eingesetzte Formularblätter und Bänder, die sich vom Beleg abheben.
-- **Tinte (ink)** (`#1b1a17`): Fließtext und Überschriften, zugleich Grundfarbe des Primärknopfes.
-- **Tinte gedämpft (ink-2)** (`#55524c`): Beschriftungen, Labels, Nebentexte in Meldungen.
-- **Tinte schwach (ink-3)** (`#6b6862`): Hilfstexte, Platzhalter, inaktive Navigation (5,24:1 auf Papier).
-- **Haarlinie (rule)** (`#e3ded4`): die Trennlinie des Belegs, untere Blattkante.
-- **Linie kräftig (rule-strong)** (`#c9c3b6`): Unterkante von Eingabefeldern, aktiver Navigationsreiter, Oberkante des Belegs.
+The neutral palette carries the interface; domain and state colors are used
+only when they communicate meter type, warnings, errors, or success.
 
 ### Primary
-- **Warmwasser (warm)** (`#c62828`): Zählerchip, Typstreifen und Kennzahlen warmen Wassers (5,30:1).
-- **Warmwasser Fläche (warm-soft)** (`#fbeceb`): die helle Fläche hinter einem Warmwasser-Chip.
-- **Kaltwasser (kalt)** (`#1565c0`): dasselbe für kaltes Wasser (5,42:1).
-- **Kaltwasser Fläche (kalt-soft)** (`#eaf1fb`): die helle Fläche hinter einem Kaltwasser-Chip.
+- **Warm water** (`#c62828`): warm-water meter data and labels.
+- **Cold water** (`#1565c0`): cold-water meter data and labels.
+- **Energy ink** (`#a34f00`): readable energy text on light surfaces.
 
 ### Secondary
-- **Energie (energie)** (`#ef6c00`): Flächenfarbe des Energiechips.
-- **Energie Fläche (energie-soft)** (`#fdf0e3`): die helle Fläche hinter einem Energie-Chip.
-- **Energie Tinte (energie-ink)** (`#a34f00`): Text- und Streifenfarbe des Energie-Typs (5,39:1) — der Bernstein selbst trägt als Text zu wenig Kontrast.
+- **Energy** (`#ef6c00`): energy chip and surface accents; not used as small text.
+- **Warm surface** (`#fbeceb`): supporting background for warm-water chips.
+- **Cold surface** (`#eaf1fb`): supporting background for cold-water chips.
+- **Energy surface** (`#fdf0e3`): supporting background for energy chips.
 
-### Zustand
-- **Bestätigt (ok)** (`#1f6f3f`): Erfolgsmeldung.
-- **Warnung (warn)** (`#8a5a00`): Entwurfshinweis, Warnmeldung.
-- **Gefahr (danger)** (`#b3261e`): Fehlermeldung und zerstörende Aktionen.
+### Neutral
+- **Canvas** (`#f3f5f2`): the page background.
+- **Surface** (`#ffffff`): cards, controls, and the app header.
+- **Soft surface** (`#edf0ec`): secondary panels and inset content.
+- **Ink** (`#1b1a17`): headings, body text, and primary actions.
+- **Secondary ink** (`#55524c`): labels and supporting content.
+- **Muted ink** (`#6b6862`): secondary descriptions and inactive navigation.
+- **Line** (`#e1e5df`) and **strong line** (`#c7cdc5`): card boundaries and separators.
+- **State colors:** success `#1f6f3f`, warning `#8a5a00`, danger `#b3261e`.
 
 ### Named Rules
-**The Fachfarbe Rule.** Rot, Blau und Bernstein stehen nie für sich. Jede
-Fachfarbe erscheint mit Glyphe und Wort, damit die Information auch ohne
-Farbsehen vollständig ist. Für Texte auf Papier gilt die Tinte-Variante des
-Fachbereichs (`energie-ink` statt `energie`).
-
-**The Keine Dekoration Rule.** Farbe, die keine Fachbedeutung trägt, kommt nicht
-vor. Es gibt keine Akzentfarbe für Buttons, keine Verlaufsflächen, keine
-Farbflächen hinter Überschriften.
+**The Fachfarbe Rule.** Red, blue, and amber indicate meter type only. Pair
+each with its glyph and a visible text label; use `#a34f00` for energy text.
 
 ## Typography
 
 **Display Font:** Segoe UI (with system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif)
-**Body Font:** Segoe UI (with system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif)
-**Mono Font:** ui-monospace (with "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace)
+**Body Font:** Segoe UI (same system stack)
+**Label/Mono Font:** ui-monospace (with Cascadia Mono, SF Mono, Menlo, Consolas, monospace)
 
-**Character:** Eine schlichte Systemschrift für alles, was gelesen wird, und
-eine Monospace ausschliesslich für Zahlen. Die Mischung ist nicht dekorativ:
-Gesetzte Ziffern machen Stände und Beträge untereinander vergleichbar — das
-ist der Kern der Herleitbarkeit. Die Schrift trägt das Werkzeug, nicht das
-Produkt.
+The interface uses one familiar sans-serif voice. Monospace is reserved for
+measured values and amounts, where tabular figures make comparisons easier.
 
 ### Hierarchy
-- **Anwendungstitel** (600, 1,0625rem, 1,5): Titelzeile der Kopfzeile, der das Gerät benennt.
-- **Bildschirmtitel** (600, 1,25rem, 1,5): Überschrift einer Ansicht.
-- **Abschnittstitel** (600, 1,0625rem, 1,5): Überschrift innerhalb einer Ansicht.
-- **Fließtext** (400, 1rem, 1,5): Grundgröße, Seitenhöhe 16 px.
-- **Nebentext** (400, 0,8125rem, 1,5): Erläuterungen unter Werten.
-- **Zahl** (400, 1,125rem / 0,875rem, 1,5): Stände und Beträge, Monospace, tabellarische Ziffern, rechtsbündig.
-- **Bedientext** (500, 0,9375rem, 1,5): Knöpfe und Leerzustände — die Elemente, die man anfasst.
-- **Reitertext** (400/500, 0,875rem, 1,5): Navigation, Textaktionen und Meldungszeilen.
-- **Label** (500, 0,75rem, 0,04em, versal): Feld- und Abschnittsbeschriftungen.
+- **Screen title** (600, 1.25rem, 1.5): the current view heading.
+- **Section title** (600, 1rem–1.0625rem, 1.5): card and content-group headings.
+- **Body** (400, 1rem, 1.5): standard reading text.
+- **Supporting text** (400, 0.8125rem–0.875rem, 1.5): descriptions and metadata.
+- **Control text** (500, 0.9375rem, 1.5): buttons and navigation.
+- **Field label** (500, 0.75rem, 1.5): uppercase labels with 0.04em tracking.
+- **Measured value** (400, 0.875rem–1.125rem, 1.5): monospace with tabular figures.
 
 ### Named Rules
-**The Gesetzte Zahl Rule.** Jede Zahl, die verglichen oder nachgerechnet
-werden muss, steht in Monospace mit Tabellenziffern (`font-variant-numeric:
-tabular-nums`) und rechtsbündig. Einheiten stehen klein dahinter, nie in der
-Zahl. Fließtextgrößen sind kein Ersatz für Ziffernbreite.
-
-**The Versal-Label Rule.** Versalien tragen ausschließlich Bezeichnungen
-(Felder, Abschnitte), nie Inhalte. Versal und Kleinbuchstaben mischen heißt:
-Text wird kleiner, nicht lauter.
+**The Measured Number Rule.** Use `.tnum` for comparable readings and costs;
+keep the unit adjacent and visible.
 
 ## Layout
 
-Ein einspaltiges Blatt mit fester Breite: `max-width: 4xl` (56rem) mit 1rem
-Rand, zentriert. Kein Raster, keine Spalten über die Breite, keine
-Kartenstapel. Inhalte stehen untereinander; Verwandtes wird durch
-Hairline-Bänder getrennt, Verwandtes in einer Zeile durch Abstand.
+The app uses a centered `max-width: 56rem` workspace with 1rem horizontal
+gutters. At 640px and wider, views are available as horizontal navigation
+links; on narrower screens the links become a native selection control so all
+top-level views remain reachable without a long horizontal menu. Account and
+cloud configuration is a nested page reached from Settings, with a return
+link to its parent. The shell and reading-entry toolbar respect device safe areas.
 
-Der Rhythmus ist klein und gleichmäßig: 4px (Hairline), 8px, 12px, 16px,
-24px, 40px. Innenabstände von Bändern 16px (12px mobil), Blattformulare 16px
-oben/unten mit 16px Rand. Vertikale Abstände zwischen Blöcken 16px, vor
-Abschnitten 24px.
-
-Unter 640px (`sm`) wird die Schrift nicht skaliert, sondern es verschwinden
-zwei Spalten: die Definition-Liste der Zähler-Metadaten von 7,5rem/9rem
-Beschriftungsspalte auf eine Spalte, und die Werkzeugleiste stapelt. Die
-Prinzipien: Kopfbereich und Navigation bleiben, alles Messbare bleibt, es
-verschwindet nur, was nebensächlich ist.
-
-Der Kopfbereich ist `sticky` (Höhe `--kopf-hoehe: 7.1rem`), die Werkzeugleiste
-der Erfassung hängt sich mit `top: var(--kopf-hoehe)` darunter. Beide tragen
-Papierfarbe, damit der Inhalt darunter durchläuft statt abgeschnitten zu werden.
+Screen content uses a 1rem vertical rhythm, with cards generally padded by
+1rem and slightly more space on wider screens. Summary content uses two
+columns where space allows, then collapses to one column. Wide data tables
+remain horizontally scrollable on larger screens and become labeled,
+stacked data cards on smaller screens. Typography does not shrink to fit.
 
 ## Elevation & Depth
 
-**Dieses System benutzt keine Schatten.** Tiefe entsteht ausschliesslich
-tonal: Papier (`#faf8f4`) als Grundlage, vertieftes Papier (`#f2eee6`) für
-eingesetzte Formularblätter, gehobenes Weiß (`#ffffff`) als Reserve, und
-Haarlinien (`#e3ded4` / `#c9c3b6`) als Kanten. Der Kopf- und Werkzeugbereich
-sind `sticky` und liegen auf Papier, nicht auf Glas — nichts schwebt über
-dem Beleg.
+Cards use a fine neutral border and a restrained 1px offset shadow
+(`0 1px 3px rgb(27 26 23 / 5%)`) to distinguish them from the canvas without
+making the app feel layered or glossy. Secondary surfaces use a subtle tonal
+shift. Focus remains a crisp 2px outline with a 2px offset.
 
 ### Named Rules
-**The Flach Rule.** Flächen sind in Ruhe flach. Es gibt keine Schlagschatten,
-keine Glows, keine Glasebenen. Eine Ebene entsteht nur durch Tonwert oder
-Linie. Wer einen Schatten einführen will, muss zuerst die Linie entfernen, die
-dieselbe Aussage trägt.
+**The Quiet Surface Rule.** Elevation is structural and subtle; avoid glow,
+glass, and decorative shadow effects.
 
 ## Shapes
 
-Der Radius ist klein und spröde: 0px an Eingabefeldern (eine Feldlinie hat
-keine Ecken), 1px am Typstreifen, 2px an Textaktionen und am Fokusrahmen,
-3px an Knöpfen und Chips. Runde Ecken würden die Form weichzeichnen; die
-3px sind die Grenze, ab der etwas noch als geschnitten, nicht als gezeichnet
-gelesen wird.
-
-Konturen sind durchgehend Haarlinien (1px) — kräftige Rahmen um Karten, Kästen
-um Eingabefelder oder um Buttons gibt es nicht (außer dem sekundären Knopf,
-der eine 1px-Kante in `#c9c3b6` trägt, weil er sonst im Blatt verschwinden
-würde). Die Checkbox ist ein 20×20px-Kasten mit 2px Radius, gezeichnet als
-Inline-SVG, in einer 44×44px-Taste.
+Cards use 14px corners. Buttons, fields, and other controls use 8px corners;
+meter chips retain a compact 3px silhouette. Borders are thin and low-contrast
+at rest, with the strong neutral reserved for controls that need a clearer
+edge. Interactive controls maintain a minimum height of 44px.
 
 ## Components
 
 ### Buttons
-- **Form:** fast rechteckig (3px Radius), 44px Mindesthöhe, 16px seitlicher Innenabstand.
-- **Primär:** gefüllte Tinte (`#1b1a17`) auf Papier (`#faf8f4`), 0,9375rem, 500, eine pro Ansicht — er steht für den nächsten Schritt, nicht für alle.
-- **Sekundär:** transparent mit 1px-Kante `#c9c3b6`, Tinte als Text — er steht für die Alternative, nicht für den zweiten Hauptschritt.
-- **Hover / Fokus:** Farbwechsel in 150ms (`transition-colors`); Fokus ist ein 2px-Rahmen in Tinte mit 2px Abstand, nie ein Schatten. Deaktiviert: 45% Deckkraft, kein Zeiger.
+- **Shape:** rounded 8px, minimum 44px high.
+- **Primary:** graphite fill with white text; one clear next action per view.
+- **Secondary:** white fill, neutral border, graphite text.
+- **Hover / Focus:** quick color feedback; keyboard focus uses a 2px outline.
+- **Disabled:** subdued and non-interactive, never visually confused with an active action.
 
 ### Chips
-- **Form:** 3px Radius, 2px/8px Innenabstand (in Listen 1px/6px), 0,75rem (in Listen 0,6875rem), 500.
-- **Farbe:** Fläche und Text kommen aus dem Typpaar des Chips — z. B. Energie `#fdf0e3` auf `#a34f00`, Warmwasser `#fbeceb` auf `#c62828`, Kaltwasser `#eaf1fb` auf `#1565c0`. Kein Chip ist neutral, und keiner trägt nur Farbe.
-- **Inhalt:** Glyphe (`◈` Energie, `▲` warm, `▼` kalt) plus Wort, in dieser Reihenfolge.
-
-### Type Stripe
-Ein 3px breiter, 1px gerundeter Farbstreifen am linken Rand einer Zählerzeile
-(28px hoch in Listen, 40px hoch im Erfassungsblatt). Er ist rein funktional:
-er zeigt auf einen Blick den Typ, ohne Text zu wiederholen, und er ist der
-einzige farbige Bereich, der ohne Begleittext auskommt, weil die Zeile
-selbst Chip und Bezeichnung trägt.
+- **Style:** 3px corners with the appropriate pale domain surface and
+  contrasting domain text.
+- **Content:** include the type glyph and localized type label.
 
 ### Cards / Containers
-- **Ecken:** 0px.
-- **Hintergrund:** vertieftes Papier `#f2eee6` für eingesetzte Formularblätter, an der Oberkante mit 1px `#c9c3b6` abgesetzt.
-- **Schatten:** keine.
-- **Rahmen:** nur die Trennlinie, kein Rahmen ringsum.
-- **Innenabstand:** 16px (12px mobil).
+- **Corner Style:** 14px for primary work surfaces.
+- **Background:** white on the neutral canvas; soft neutral for secondary panels.
+- **Shadow Strategy:** 1px offset, 3px blur at 5% black; use sparingly.
+- **Border:** 1px neutral line.
+- **Internal Padding:** 1rem, increasing slightly on wide layouts.
 
 ### Inputs / Fields
-- **Form:** keine Box, nur eine Unterlinie (`border-bottom: 1px solid #c9c3b6`), transparenter Grund, kein Radius, 44px Mindesthöhe.
-- **Label:** versal, 0,75rem, 0,04em Sperrung, `#55524c`, über der Linie.
-- **Fokus:** die Linie wird kräftiger (`#1b1a17`) — die Höhe bleibt stabil, damit sich nichts springt.
-- **Platzhalter:** `#6b6862`. **Deaktiviert:** gepunktete Unterlinie, Text in `#6b6862`.
-- **Zahlenfeld:** `inputmode="decimal"`, rechtsbündig, Monospace, feste Breite (`w-32`), Einheit als eigener, nicht editierbarer Bereich rechts daneben — die Einheit wird nie getippt.
+- **Style:** white fill, 1px strong-neutral border, 8px corners, 44px minimum height.
+- **Focus:** 2px visible graphite outline and a stronger border.
+- **Disabled:** soft neutral fill and muted text.
 
 ### Navigation
-Drei gleichwertige Reiter unter der Kopfzeile, kein Textlinks im Fließtext.
-Höhe 44px, 0,875rem, 500. Inaktiv in `#6b6862`, aktiv in `#1b1a17` mit 2px
-Unterkante in Tinte (mit −1px Versatz, damit die Linie die Haarlinie der
-Kopfzeile überdeckt statt eine zweite zu bilden). Es gibt keinen
-Pill-Hintergrund, keine Icons, keinen Schatten.
+Desktop uses 44px text tabs, with a dark active underline. Mobile uses a
+44px native select with the current top-level screen visible. Account and
+cloud configuration sits beneath Settings and marks Settings as active in
+the main navigation; its own page provides a return link. All navigation
+controls preserve the route order and accessible label.
 
-### Message Row
-Ein Satz unter der Kopfzeile: Glyphe (`✕` / `!` / `✓` / `i`) in der
-Zustandsfarbe, Text in derselben Farbe, darunter eine Hairline. Fehler sind
-`role="alert"`, der Rest `role="status"`. Das Schließen ist ein 44×44px-Knopf
-mit 2px Radius und `aria-label`.
-
-### Empty State
-Kein Zentrieren, keine Illustration, kein Platzhalter-Symbol. Der Leerzustand
-benennt die Lage (`#55524c`, 0,9375rem), nennt den nächsten Schritt
-(`#6b6862`, 0,875rem, höchstens 46 Zeichen Breite) und bietet die eine Aktion
-an, wenn es genau eine gibt.
-
-### The Running Line
-Ein 3px hoher Streifen über dem Erfassungsblatt, gefüllt in `#e3ded4`. Solange
-noch nicht alle Zähler erfasst sind, läuft ein 45% breites Segment in Tinte
-von links nach rechts (`1400ms`, `cubic-bezier(0.16, 1, 0.3, 1)`, unendlich).
-Ist alles erfasst, steht die Linie still. Das ist die einzige Bewegung der
-Oberfläche und sie zeigt Arbeitsstand, nicht Dekoration. Bei
-`prefers-reduced-motion: reduce` entfällt die Animation (0,01ms, eine Runde).
+### Reading Entry
+Each meter is a compact surface that keeps its type, last reading, entry field,
+notes, and photo actions together. The sticky date and save toolbar stays near
+the top while the list is being completed.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** trenne Inhalte mit 1px-Haarlinien (`#e3ded4`) statt mit Rahmen, Schatten oder Kacheln.
-- **Do** setze jeden messbaren Wert in Monospace mit Tabellenziffern, rechtsbündig, mit der Einheit klein dahinter.
-- **Do** zeige Fachfarbe immer zusammen mit Glyphe und Wort.
-- **Do** halte jede interaktive Fläche bei mindestens 44×44px — auch Textaktionen und Checkboxen.
-- **Do** benutze genau eine Primäraktion pro Ansicht und lasse alles andere sekundär oder textlich.
-- **Do** führe genau eine Bewegung: die Lauflinie, solange Erfassung fehlt.
-- **Do** bleib bei ≥ 4,5:1 Kontrast auf Papier — für Bernstein die Tinte-Variante `#a34f00`.
-- **Do** respektiere `prefers-reduced-motion` und reduziere auf Statik.
-- **Do** löse Meldungscodes an der UI-Seite auf; die Domäne gibt nie Text aus — Zahlen, Beträge und Daten formatiert nur `format.ts`.
+- **Do** keep primary actions obvious and full-width on narrow screens where useful.
+- **Do** preserve 44px minimum hit targets and visible keyboard focus.
+- **Do** use domain colors only for meter meaning and pair them with text.
+- **Do** present dense data as stacked labeled values on narrow screens.
+- **Do** keep key readings and currency amounts aligned and easy to compare.
 
 ### Don't:
-- **Don't** erfinde Farben, die keine Fachbedeutung tragen, und setze keine Verläufe.
-- **Don't** baue Kachelraster, Kartenstapel oder Rounded-Container — der Beleg ist ein durchgehendes Blatt.
-- **Don't** setze Schatten oder Glasflächen; Tiefe kommt aus Tonwert und Linie.
-- **Don't** verkleinere Tap-Flächen unter 44px, auch nicht für Textaktionen oder das Schließen einer Meldung.
-- **Don't** färbe Text mit dem reinen Bernstein `#ef6c00` — er ist Flächenfarbe, nicht Textfarbe.
-- **Don't** lasse Farbe Information tragen, die nicht auch als Wort dasteht.
-- **Don't** animiere etwas anderes als die Lauflinie; Bewegung ist hier ein Zustandsanzeiger, kein Effekt.
+- **Don't** use gradients or decorative color unrelated to domain meaning.
+- **Don't** shrink controls or targets to fit a narrow layout.
+- **Don't** use color alone to communicate meter type or state.
+- **Don't** bury wide tables in the mobile layout; use the stacked data view.

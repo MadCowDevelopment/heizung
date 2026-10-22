@@ -1,8 +1,7 @@
 /**
  * Kleine Bausteine der Oberfläche.
  *
- * Bewusst zurückhaltend: Linien statt Kacheln, Text statt Icon-Sammlungen,
- * Schatten nur, wo sie eine echte Höhenangabe tragen (Offset **und** Weichzeichnung).
+ * Gemeinsame Form- und Aktionsmuster für alle Ansichten.
  */
 
 import type {
@@ -22,8 +21,7 @@ export function KnopfPrimär({
   return (
     <button
       type="button"
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-[3px] px-4 text-[0.9375rem] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
-      style={{ backgroundColor: "#1b1a17", color: "#faf8f4" }}
+      className={`button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-[0.9375rem] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
       {...rest}
     >
       {children}
@@ -33,12 +31,11 @@ export function KnopfPrimär({
 
 /** Klassen der sekundären Aktion – auch für Links verwendbar. */
 export const KNOPF_SEKUNDAER_KLASSE =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-[3px] border px-4 text-[0.9375rem] font-medium transition-colors duration-150";
+  "button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-[0.9375rem] font-medium transition-colors duration-150";
 
 /** Stil der sekundären Aktion. */
 export const KNOPF_SEKUNDAER_STIL: CSSProperties = {
-  borderColor: "#c9c3b6",
-  backgroundColor: "transparent",
+  borderColor: "#c7cdc5",
   color: "#1b1a17",
 };
 
@@ -76,10 +73,10 @@ export function Textaktion({
   return (
     <button
       type="button"
-      className={`inline-flex min-h-11 items-center rounded-[2px] px-2 text-[0.875rem] underline underline-offset-4 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
+      className={`inline-flex min-h-11 items-center rounded-md px-2 text-[0.875rem] underline underline-offset-4 transition-colors duration-150 hover:bg-[#edf0ec] disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
       style={{
         color: gefahr ? "#b3261e" : "#1b1a17",
-        textDecorationColor: gefahr ? "#e3b0ae" : "#c9c3b6",
+        textDecorationColor: gefahr ? "#e3b0ae" : "#c7cdc5",
       }}
       {...rest}
     >
@@ -150,8 +147,8 @@ export function Meldungszeile({
   return (
     <div
       role={art === "fehler" ? "alert" : "status"}
-      className="flex items-start gap-3 py-2 text-[0.875rem]"
-      style={{ color: farbe, borderBottom: "1px solid #e3ded4" }}
+      className="flex items-start gap-3 rounded-lg border px-3 py-2 text-[0.875rem]"
+      style={{ color: farbe, borderColor: "#e1e5df", backgroundColor: "#ffffff" }}
     >
       <span className="mt-[3px] leading-none" aria-hidden="true">
         {art === "fehler" ? "✕" : art === "warnung" ? "!" : art === "erfolg" ? "✓" : "i"}
