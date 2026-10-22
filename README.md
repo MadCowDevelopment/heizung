@@ -21,9 +21,9 @@ nicht der Code.
 Domänenmodell und Datenmodell stehen in `docs/requirements.md` §2 und §7; die Datenablage
 als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
 
-## Status: Meilenstein M2 („Abrechnung“)
+## Status: Meilenstein M3 („Politur“)
 
-**M0 und M1** (Cloud, Verbrauch & Abschläge) sowie **M2** (Abrechnung) sind laut
+**M0 bis M3** (Cloud, Verbrauch, Abschläge, Abrechnung und Politur) sind laut
 [`docs/requirements.md` §6.4](docs/requirements.md) umgesetzt. Kurzfassung:
 
 **Umgesetzt und getestet**
@@ -37,7 +37,7 @@ als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
   übersetzt – im Inneren wie in der Oberfläche steht kein fest verdrahteter deutscher Text.
   Die Domänen- und Speicherschicht liefert dazu **sprachneutrale Codes** (plus Parameter);
   erst die Oberfläche löst sie zum Text auf – so bleibt der Rechenkern frei von i18n.
-  Ein Sprachumschalter in der Oberfläche folgt laut `docs/requirements.md` §6.4 in M3.
+  Die lokale Sprachwahl ist unter Einstellungen verfügbar.
 - **Domänenlogik** als reine Funktionen ohne UI- und Netzabhängigkeit: Periodenverbrauch je
   Zähler, enthaltene Zähler mit Zyklusschutz, Verteilung nach Wasseranteil, Kosten mit
   Preis-Historie, Plausibilitätsprüfungen, Jahresabrechnung (Verteilung nach Betreiberbetrag,
@@ -55,12 +55,15 @@ als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
 - **JSON-Backup** des vollständigen Datenbestands zum Export und bestätigungspflichtigen Import.
 - **Cloud-Sync** über Fine-grained PAT und GitHub Contents API: lokale IndexedDB-Queue,
   SHA-optimistische Schreibvorgänge, Last-Write-Wins-Merge bei Konflikten und Retry.
+- **M3-Politur:** installierbare PWA mit gecachter Offline-Shell, lokaler Sprachwahl
+  (Deutsch/Englisch), Preis-Historie und Einstellungen für Verteilung und PDF-Angaben.
+- **Kamera-Belege:** Fotos werden verkleinert ausschließlich in IndexedDB gespeichert;
+  unterstützte Browser können erkannte Ziffern als manuell zu bestätigende Vorschläge anbieten.
 - **Testsuite** mit Vitest für Rechenkern, Im-/Export, Store, Cloud-Sync und i18n-Parität.
 
-**Noch nicht umgesetzt (M3)**
-
-- **PWA-Offline-Shell und Kamera/OCR-Belege**.
-- **Preis-Historie-Oberfläche, Sprachumschalter und weitere Einstellungsansichten**.
+Die OCR-Vorschläge nutzen die browserseitige Text-Recognition-API, sofern der Browser sie
+bereitstellt; das Foto kann auch ohne OCR als Beleg gespeichert und der Stand manuell
+eingegeben werden. Fotos verlassen das Gerät nicht.
 
 Der weitere Ziel-Stack inklusive TanStack Query, React Hook Form/Zod und `vite-plugin-pwa`
 steht in `docs/requirements.md` §6.1.

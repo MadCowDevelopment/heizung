@@ -159,13 +159,15 @@ apps/web/                    # Frontend → GitHub Pages
       "notiz": "", "unsicher": false, "fotoKey": null, "preisMwhGenutzt": 0.10,
       "createdAt": "…", "updatedAt": "…", "deleted": false }
   ],
-  "preis":      [ { "id": "p1", "gueltigAb": "2026-01-01", "preisMWh": 0.10, "preisM3": 0, "notiz": "" } ],
+  "preis":      [ { "id": "p1", "gueltigAb": "2026-01-01", "preisMWh": 0.10, "preisM3": 0,
+                    "notiz": "", "updatedAt": "…", "deleted": false } ],
   "abschlagPlan":[ { "id": "ap1", "bewohnerId": "b1", "betrag": 25, "rhythmus": "monatlich", "aktiv": true } ],
   "zahlung":    [ { "id": "z1", "bewohnerId": "b1", "betrag": 25, "faelligAm": "2026-03-01", "bezahltAm": "2026-03-04", "notiz": "" } ],
   "abrechnung": [ { "id": "ab1", "jahr": 2026, "von": "2026-01-01", "bis": "2026-12-31",
                     "betreiberBetrag": 1234.56, "betreiberHinweis": "…", "status": "entwurf",
                     "positionen": [ /* eingefrorene Positionen */ ], "updatedAt": "…" } ],
-  "einstellungen": { "verteilSchluessel": "warm", "waehrung": "EUR", "objektName": "…",
+  "einstellungen": { "verteilSchluessel": "warm", "waehrung": "EUR", "preisMWhDefault": 0.10,
+                     "preisM3Default": 0, "objektName": "…",
                      "ansprechpartner": "…", "pdfHinweis": "…", "datenRepo": "Mihi/heizung-data" }
 }
 ```

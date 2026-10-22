@@ -21,6 +21,7 @@ import {
   type AppState,
   type Bewohner,
   type ISODate,
+  type Preis,
   type Zaehler,
   type Zahlung,
 } from "../domain/types";
@@ -54,6 +55,7 @@ export interface EntwurfEintrag {
   stand: string;
   unsicher: boolean;
   notiz: string;
+  fotoKey?: string | null;
 }
 
 export interface Entwurf {
@@ -104,7 +106,9 @@ interface AppStore {
   laden: (speicher?: StorageAdapter) => Promise<void>;
   speichern: () => Promise<void>;
   synchronisieren: () => Promise<void>;
-  einstellungenAendern: (daten: Partial<AppState["einstellungen"]>) => void;
+  einstellungenAendern: (daten: Partial<AppState["einstellungen"]>) => Promise<boolean>;
+  preisSpeichern: (preis: Omit<Preis, "id"> & { id?: string }) => string;
+  preisLoeschen: (preisId: string) => void;
   zahlungAlsBezahlt: (
     bewohnerId: string,
     faelligAm: ISODate,
@@ -323,11 +327,46 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  einstellungenAendern: (daten) => {
+  einstellungenAendern: async (daten) => {
     set((s) => ({
       state: {
         ...s.state,
         einstellungen: { ...s.state.einstellungen, ...daten },
+      },
+    }));
+    await get().speichern();
+    return get().status !== "fehler";
+  },
+
+  preisSpeichern: (daten) => {
+    const preisId = daten.id ?? id("p");
+    const preis = mitZeitstempel({
+      ...daten,
+      id: preisId,
+      notiz: daten.notiz ?? "",
+      deleted: false,
+    }) satisfies Preis;
+    set((s) => ({
+      state: {
+        ...s.state,
+        preis: s.state.preis.some((eintrag) => eintrag.id === preisId)
+          ? s.state.preis.map((eintrag) => (eintrag.id === preisId ? preis : eintrag))
+          : [...s.state.preis, preis],
+      },
+    }));
+    void get().speichern();
+    return preisId;
+  },
+
+  preisLoeschen: (preisId) => {
+    set((s) => ({
+      state: {
+        ...s.state,
+        preis: s.state.preis.map((eintrag) =>
+          eintrag.id === preisId
+            ? mitZeitstempel({ ...eintrag, deleted: true })
+            : eintrag,
+        ),
       },
     }));
     void get().speichern();
@@ -616,6 +655,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
           : [...s.state.ablesung, ablesung],
       },
     }));
+    if (bestehende?.fotoKey && bestehende.fotoKey !== ablesung.fotoKey) {
+      const speicher = get().speicher;
+      if (speicher instanceof IndexedDbAdapter) {
+        void speicher.fotoLoeschen(bestehende.fotoKey).catch((fehler: unknown) => {
+          set({
+            meldung: {
+              art: "fehler",
+              text: i18n.t("ablesung.fotoAufraeumenFehler", {
+                reason: fehler instanceof Error ? fehler.message : i18n.t("cloud.unbekannterFehler"),
+              }),
+            },
+          });
+        });
+      }
+    }
     void get().speichern();
     return {
       ok: true,
@@ -624,6 +678,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   ablesungLoeschen: (ablesungId) => {
+    const fotoKey = get().state.ablesung.find((a) => a.id === ablesungId)?.fotoKey;
     set((s) => ({
       state: {
         ...s.state,
@@ -632,6 +687,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ),
       },
     }));
+    const speicher = get().speicher;
+    if (fotoKey && speicher instanceof IndexedDbAdapter) {
+      void speicher.fotoLoeschen(fotoKey).catch((fehler: unknown) => {
+        set({
+          meldung: {
+            art: "fehler",
+            text: i18n.t("ablesung.fotoAufraeumenFehler", {
+              reason: fehler instanceof Error ? fehler.message : i18n.t("cloud.unbekannterFehler"),
+            }),
+          },
+        });
+      });
+    }
     void get().speichern();
   },
 

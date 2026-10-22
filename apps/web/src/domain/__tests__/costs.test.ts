@@ -24,9 +24,27 @@ describe("R4/R9 – Preise und Kosten", () => {
     expect(p.preisM3).toBe(DEFAULT_PREIS_M3);
   });
 
+  it("verwendet konfigurierbare Standardpreise vor der ersten Stufe", () => {
+    expect(priceForDate([], "2025-05-05", { preisMWh: 0.25, preisM3: 1.5 })).toEqual({
+      preisMWh: 0.25,
+      preisM3: 1.5,
+    });
+  });
+
   it("liefert die Preisstufe, die am Datum gilt", () => {
     expect(priceForDate(PREISE, "2025-03-01").preisMWh).toBe(0.1);
     expect(priceForDate(PREISE, "2025-07-01").preisMWh).toBe(0.2);
+  });
+
+  it("ignoriert gelöschte Preisstufen", () => {
+    const geloescht: Preis = {
+      id: "p3",
+      gueltigAb: "2025-08-01",
+      preisMWh: 99,
+      preisM3: 99,
+      deleted: true,
+    };
+    expect(priceForDate([...PREISE, geloescht], "2025-10-01").preisMWh).toBe(0.2);
   });
 
   it("ignoriert Preisstufen, die erst später gelten", () => {

@@ -18,16 +18,27 @@ import { kwhToMwh, litreToM3, roundTo } from "./units";
 export const DEFAULT_PREIS_MWH = 0.1;
 export const DEFAULT_PREIS_M3 = 0;
 
+export interface StandardPreise {
+  preisMWh: number;
+  preisM3: number;
+}
+
 /** Sortiert Preise nach `gueltigAb` aufsteigend. */
 export function sortPrices(preise: Preis[]): Preis[] {
-  return [...preise].sort((a, b) => compareDate(a.gueltigAb, b.gueltigAb));
+  return preise
+    .filter((preis) => !preis.deleted)
+    .sort((a, b) => compareDate(a.gueltigAb, b.gueltigAb));
 }
 
 /**
  * Preis, der an einem Datum gilt (die letzte Stufe mit `gueltigAb <= datum`).
  * Ohne Preise gilt der Vorgabepreis.
  */
-export function priceForDate(preise: Preis[], datum: ISODate): { preisMWh: number; preisM3: number } {
+export function priceForDate(
+  preise: Preis[],
+  datum: ISODate,
+  standard: StandardPreise = { preisMWh: DEFAULT_PREIS_MWH, preisM3: DEFAULT_PREIS_M3 },
+): StandardPreise {
   const sortiert = sortPrices(preise);
   let gueltig: Preis | undefined;
   for (const p of sortiert) {
@@ -35,7 +46,7 @@ export function priceForDate(preise: Preis[], datum: ISODate): { preisMWh: numbe
     else break;
   }
   if (!gueltig) {
-    return { preisMWh: DEFAULT_PREIS_MWH, preisM3: DEFAULT_PREIS_M3 };
+    return standard;
   }
   return { preisMWh: gueltig.preisMWh, preisM3: gueltig.preisM3 };
 }
@@ -77,6 +88,7 @@ export function splitByPrice(
   bis: ISODate,
   menge: number,
   einheit: "energie" | "wasser",
+  standard: StandardPreise = { preisMWh: DEFAULT_PREIS_MWH, preisM3: DEFAULT_PREIS_M3 },
 ): PreisSegment[] {
   const grenzen = [von, ...priceChangesInPeriod(preise, von, bis), bis];
   const unique = grenzen.filter((d, i) => i === 0 || compareDate(d, grenzen[i - 1]) !== 0);
@@ -89,7 +101,7 @@ export function splitByPrice(
     const segBis = i === unique.length - 2 ? bis : addDays(unique[i + 1], -1);
     const tage = daysBetween(segVon, segBis) + 1;
     const anteil = tage / gesamtTage;
-    const { preisMWh, preisM3 } = priceForDate(preise, segVon);
+    const { preisMWh, preisM3 } = priceForDate(preise, segVon, standard);
     const mengeSegment = menge * anteil;
     const kosten =
       einheit === "energie"
@@ -114,8 +126,9 @@ export function energieKosten(
   von: ISODate,
   bis: ISODate,
   energieKwh: number,
+  standard?: StandardPreise,
 ): number {
-  return splitByPrice(preise, von, bis, energieKwh, "energie").reduce((sum, s) => sum + s.kosten, 0);
+  return splitByPrice(preise, von, bis, energieKwh, "energie", standard).reduce((sum, s) => sum + s.kosten, 0);
 }
 
 /** Kosten eines Wasserdeltas (Liter) in einer Periode. */
@@ -124,8 +137,9 @@ export function wasserKosten(
   von: ISODate,
   bis: ISODate,
   wasserL: number,
+  standard?: StandardPreise,
 ): number {
-  return splitByPrice(preise, von, bis, wasserL, "wasser").reduce((sum, s) => sum + s.kosten, 0);
+  return splitByPrice(preise, von, bis, wasserL, "wasser", standard).reduce((sum, s) => sum + s.kosten, 0);
 }
 
 /**

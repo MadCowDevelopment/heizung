@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildSettlement, freezeSettlement, settlement } from "../calc/settlement";
-import type { AppState, Zahlung } from "../types";
+import { DEFAULT_EINSTELLUNGEN, type AppState, type Zahlung } from "../types";
 import { IDS, PERIODE, ablesungen, bewohner, preis, state, zaehler } from "./fixtures";
 
 /** Referenz-Zustand mit Preisen und Zahlungen. */
@@ -35,6 +35,20 @@ describe("Abrechnung – Referenzszenario (Ende zu Ende)", () => {
     expect(posA(s)?.kostenTheoretisch).toBeCloseTo(0.2, 6);
     expect(posB(s)?.kostenTheoretisch).toBeCloseTo(0.1, 6);
     expect(s.theoretischGesamt).toBeCloseTo(0.3, 6);
+  });
+
+  it("verwendet den eingestellten Standardpreis vor der ersten Preisstufe", () => {
+    const daten = state({
+      preis: [],
+      einstellungen: {
+        ...DEFAULT_EINSTELLUNGEN,
+        preisMWhDefault: 0.25,
+      },
+    });
+    const ergebnis = buildSettlement(daten, PERIODE);
+    expect(ergebnis.theoretischGesamt).toBeCloseTo(0.75, 6);
+    expect(posA(ergebnis)?.kostenTheoretisch).toBeCloseTo(0.5, 6);
+    expect(posB(ergebnis)?.kostenTheoretisch).toBeCloseTo(0.25, 6);
   });
 
   it("verwendet ohne Betreiberbetrag die theoretischen Kosten (Vorschau)", () => {

@@ -44,12 +44,28 @@ describe("GitHubStorageAdapter", () => {
       { id: "resident", name: "Remote old", aktiv: true, updatedAt: remote.updatedAt },
       { id: "deleted", name: "Deleted", aktiv: false, deleted: true, updatedAt: remote.updatedAt },
     ];
+    local.preis = [{
+      id: "price",
+      gueltigAb: "2026-01-01",
+      preisMWh: 0.2,
+      preisM3: 0,
+      deleted: true,
+      updatedAt: local.updatedAt,
+    }];
+    remote.preis = [{
+      id: "price",
+      gueltigAb: "2026-01-01",
+      preisMWh: 0.1,
+      preisM3: 0,
+      updatedAt: remote.updatedAt,
+    }];
 
     const result = mergeAppStates(local, remote);
     expect(result.bewohner).toEqual([
       local.bewohner[0],
       remote.bewohner[1],
     ]);
+    expect(result.preis).toEqual(local.preis);
   });
 
   it("re-reads and retries after a GitHub SHA conflict", async () => {

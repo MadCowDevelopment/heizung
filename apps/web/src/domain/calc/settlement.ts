@@ -175,11 +175,17 @@ export function buildSettlement(
   const effPreisMWh =
     optionen.preisMWh != null
       ? optionen.preisMWh
-      : roundTo(energieKosten(state.preis, von, bis, 1000), 6);
+      : roundTo(energieKosten(state.preis, von, bis, 1000, {
+          preisMWh: state.einstellungen.preisMWhDefault,
+          preisM3: state.einstellungen.preisM3Default,
+        }), 6);
   const effPreisM3 =
     optionen.preisM3 != null
       ? optionen.preisM3
-      : roundTo(wasserKosten(state.preis, von, bis, 1000), 6);
+      : roundTo(wasserKosten(state.preis, von, bis, 1000, {
+          preisMWh: state.einstellungen.preisMWhDefault,
+          preisM3: state.einstellungen.preisM3Default,
+        }), 6);
 
   // --- Positionen aufbauen ---------------------------------------------
   const positionen: AbrechnungsPosition[] = [];
