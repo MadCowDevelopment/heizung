@@ -165,6 +165,20 @@ describe("Anwendungszustand", () => {
     expect(useAppStore.getState().state.abschlagPlan).toHaveLength(2);
   });
 
+  it("erfasst und storniert Zahlungen nachvollziehbar", () => {
+    const bewohnerId = useAppStore.getState().bewohnerAnlegen({ name: "A. Beispiel", aktiv: true });
+    useAppStore.getState().abschlagSetzen(bewohnerId, 42, "monatlich");
+    const planId = useAppStore.getState().state.abschlagPlan[0].id;
+    useAppStore.getState().zahlungAlsBezahlt(bewohnerId, "2026-01-01", 42, planId);
+    const zahlung = useAppStore.getState().state.zahlung[0];
+    expect(zahlung.bezahltAm).toBeTruthy();
+    expect(zahlung.betrag).toBe(42);
+    expect(zahlung.abschlagPlanId).toBe(planId);
+
+    useAppStore.getState().zahlungStornieren(zahlung.id);
+    expect(useAppStore.getState().state.zahlung[0].deleted).toBe(true);
+  });
+
   it("löst Zähler eines gelöschten Bewohners", () => {
     const bewohnerId = useAppStore.getState().bewohnerAnlegen({ name: "X", aktiv: true });
     const zaehlerId = zaehlerAnlegen("Heizung X");

@@ -255,7 +255,7 @@ export function buildSettlement(
   // --- R6: Abschläge ----------------------------------------------------
   const jahr = Number(von.slice(0, 4));
   const zahlungenImJahr = state.zahlung.filter((z) => {
-    if (!bewohnerIds.has(z.bewohnerId)) return false;
+    if (z.deleted || !bewohnerIds.has(z.bewohnerId)) return false;
     const stichtag = z.bezahltAm ?? z.faelligAm;
     return (
       compareDate(`${jahr}-01-01`, stichtag) <= 0 && compareDate(stichtag, `${jahr}-12-31`) <= 0

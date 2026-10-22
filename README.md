@@ -21,9 +21,9 @@ nicht der Code.
 Domänenmodell und Datenmodell stehen in `docs/requirements.md` §2 und §7; die Datenablage
 als JSON (`data/state.json`, Schema-Version 4) in `docs/architecture.md` §4.
 
-## Status: Meilenstein M0 („statischer Prototyp“)
+## Status: Meilenstein M1 („Cloud, Verbrauch & Abschläge“)
 
-Der aktuelle Stand entspricht **M0** laut [`docs/requirements.md` §6.4](docs/requirements.md).
+Der aktuelle Stand entspricht **M1** laut [`docs/requirements.md` §6.4](docs/requirements.md).
 Kurzfassung:
 
 **Umgesetzt und getestet**
@@ -32,8 +32,8 @@ Kurzfassung:
   (robuste Deep Links auf GitHub Pages ohne 404-Fallback).
 - **Zustandsverwaltung** mit zustand; jede Mutation schreibt sofort in den lokalen Speicher.
 - **Persistenz** über `StorageAdapter` – im Browser IndexedDB (Fallback: Arbeitsspeicher).
-- **i18n** mit i18next/react-i18next: deutsche und englische Kataloge sind **jeweils
-  schlüsselgleich** (164 Schlüssel), und die gesamte Bedienoberfläche ist über den Katalog
+- **i18n** mit i18next/react-i18next: deutsche und englische Kataloge sind **schlüsselgleich**,
+  und die gesamte Bedienoberfläche ist über den Katalog
   übersetzt – im Inneren wie in der Oberfläche steht kein fest verdrahteter deutscher Text.
   Die Domänen- und Speicherschicht liefert dazu **sprachneutrale Codes** (plus Parameter);
   erst die Oberfläche löst sie zum Text auf – so bleibt der Rechenkern frei von i18n.
@@ -43,17 +43,14 @@ Kurzfassung:
   Preis-Historie, Plausibilitätsprüfungen, Jahresabrechnung (Verteilung nach Betreiberbetrag,
   Abschläge, Saldo, Largest-Remainder-Rundung) sowie der Import von Startablesungen (CSV)
   und der JSON-Export/-Import des Gesamtzustands – jeweils auf Domänenebene.
-- **Bedienoberfläche** für die Bildschirme S2 (Zähler), S3 (Ablesung) und S4 (Bewohner) –
-  inklusive Import von Startablesungen (CSV) und setzbarem Abschlagsplan je Bewohner.
-- **Testsuite** mit Vitest (12 Testdateien, 133 Tests) für Rechenkern, Im-/Export, Store
-  und die i18n-Katalog-Parität.
+- **Bedienoberfläche** für S2 (Zähler), S3 (Ablesung), S4 (Bewohner), S5 (Verbrauch & Verteilung)
+  und S6 (Abschläge) – mit Zeitraumwahl, Plausibilitätswarnungen, CSV-Export und Zahlungsraster.
+- **Cloud-Sync** über Fine-grained PAT und GitHub Contents API: lokale IndexedDB-Queue,
+  SHA-optimistische Schreibvorgänge, Last-Write-Wins-Merge bei Konflikten und Retry.
+- **Testsuite** mit Vitest für Rechenkern, Im-/Export, Store, Cloud-Sync und i18n-Parität.
 
 **Noch nicht umgesetzt**
 
-- **Cloud-Sync ist nicht implementiert.** Die Daten liegen ausschließlich im IndexedDB des
-  Browsers. GitHub-Adapter, Sync-Engine (Queue, Last-Write-Wins, SHA-Merge) und
-  Token-Verwaltung sind für **M1** geplant – ebenso die Verbrauchs- und Verteilungsansicht
-  (**S5**) und das Zahlungsraster zu den Abschlagsplänen (**S6**).
 - **PDF-Ausgabe** (R10) und **CSV-Export der Abrechnung**: geplant für **M2**.
 - **Abrechnungsoberfläche (S7)** und **Dashboard (S1)**: geplant für **M2**.
 - **JSON-Backup in der Oberfläche** (Export/Import nach S8): die Domänenfunktionen
@@ -61,8 +58,8 @@ Kurzfassung:
 - **PWA-Offline-Shell, Kamera/OCR-Belege, Preis-Historie-UI, Sprachumschalter**: geplant
   für **M3** (siehe §6.4 der Anforderungen).
 
-Der Ziel-Stack inklusive TanStack Query, React Hook Form/Zod und `vite-plugin-pwa` steht in
-`docs/requirements.md` §6.1 – umgesetzt sind bisher die oben genannten Teile.
+Der weitere Ziel-Stack inklusive TanStack Query, React Hook Form/Zod und `vite-plugin-pwa`
+steht in `docs/requirements.md` §6.1.
 
 ## Web-App lokal starten
 

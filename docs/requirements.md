@@ -247,7 +247,7 @@ flowchart LR
 ### 6.4 Umsetzungsschritte
 
 1. **M0 Statischer Prototyp:** Domänenmodell + Rechenkern (R1–R11) + Unit-Tests; S2/S3/S4 mit lokalem Adapter; Startablesungen-Import.
-2. **M1 Cloud:** Token-Verwaltung (Fine-grained PAT) + `StorageAdapter` für die GitHub-API + Sync-Engine mit SHA-Merge, S5/S6.
+2. **M1 Cloud:** ✅ umgesetzt – Token-Verwaltung (Fine-grained PAT), GitHub-`StorageAdapter`, lokale Queue mit SHA-Merge/Retry sowie S5 Verbrauch & Verteilung und S6 Abschläge.
 3. **M2 Abrechnung:** S7 (Betreiberbetrag, Verteilung, Abschläge, Einzel-/Sammel-PDF, CSV), Export/Import.
 4. **M3 Politur:** Kamera/OCR-Beleg, PWA-Offline, Preis-Historie-UI, Settings, i18n, GitHub Actions → Pages.
 

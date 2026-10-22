@@ -154,17 +154,21 @@ export interface AbschlagPlan {
   betrag: number;
   rhythmus: AbschlagRhythmus;
   aktiv: boolean;
+  updatedAt?: ISOTimestamp;
 }
 
 /** Erfasste Zahlung (R6). */
 export interface Zahlung {
   id: string;
   bewohnerId: string;
+  abschlagPlanId?: string;
   betrag: number;
   faelligAm: ISODate;
   /** Nur gesetzt, wenn die Zahlung erfolgt ist. */
   bezahltAm?: ISODate | null;
   notiz?: string;
+  updatedAt?: ISOTimestamp;
+  deleted?: boolean;
 }
 
 /** Eingefrorene Abrechnungsposition (docs/requirements.md §2.4). */
@@ -216,6 +220,8 @@ export interface Einstellungen {
   pdfHinweis?: string;
   /** Ziel-Repo `owner/repo` für den Cloud-Speicher. */
   datenRepo?: string;
+  /** Intervall für Wiederholungsversuche bei ausstehenden Sync-Aufträgen. */
+  syncIntervallSekunden?: number;
   schemaVersion: number;
 }
 
@@ -249,6 +255,7 @@ export const DEFAULT_EINSTELLUNGEN: Einstellungen = {
   ansprechpartner: "",
   pdfHinweis: "",
   datenRepo: "MadCowDevelopment/heizung-data",
+  syncIntervallSekunden: 30,
   schemaVersion: SCHEMA_VERSION,
 };
 
