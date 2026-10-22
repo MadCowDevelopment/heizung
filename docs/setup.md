@@ -10,7 +10,7 @@ Alles, was **einmal** gemacht werden muss, damit die App läuft. Stand: 21.10.20
 | 2 | `data/state.json` mit Grundgerüst anlegen | Copilot | ✅ erledigt |
 | 3 | GitHub Pages für das Code-Repo aktivieren | Copilot | ✅ erledigt |
 | 4 | Zugriffstoken erzeugen (Fine-grained PAT) | **du** | ⬜ offen |
-| 5 | `VITE_GITHUB_CLIENT_ID` / Daten-Repo-Default ins Frontend | Copilot (nach Schritt 4) | ⬜ offen |
+| 5 | Daten-Repo-Default im Frontend konfigurieren | Copilot | ✅ erledigt |
 
 ---
 
@@ -61,21 +61,21 @@ Warum: Das Token ist **auf genau ein Repository und auf genau eine Berechtigung*
 1. Öffne: https://github.com/settings/personal-access-tokens/new
    (alternativ: Avatar rechts oben → Settings → Developer settings → Personal access tokens → *Fine-grained tokens* → *Generate new token*)
 2. **Token name:** `heizung-app`
-3. **Expiration:** 1 Jahr (danach wird die App nach einem Token-Update fragen – geplant ist dafür ein Hinweis in den Einstellungen)
+3. **Expiration:** 1 Jahr. Wenn das Token abläuft, zeigt die App den API-Fehler; dann ein neues Token erzeugen und unter *Konto & Cloud* testen.
 4. **Resource owner:** `MadCowDevelopment`
 5. **Repository access:** *Only select repositories* → `heizung-data` **hinzufügen**
 6. **Repository permissions:** bei *Contents* auf **Read and write** setzen. Alles andere auf *No access* / *Read-only* lassen. **Wichtig:** *Metadata: Read-only* ist automatisch gesetzt und muss bleiben.
 7. **Generate token** → das Token wird **einmalig** angezeigt → **sofort kopieren** (im Passwort-Manager ablegen, z. B. Bitwarden/KeePass; nicht ins Code-Repo, nicht in Chatverläufe).
 8. Optional, aber empfohlen: **SSH-Key/GPG** ist für API-Tokens nicht nötig – 2FA ist bei Fine-grained PATs nicht zwingend, der Token ist jedoch eine vollwertige Berechtigung.
 
-**Danach:** Beim ersten Start der App unter *Einstellungen → Konto & Cloud* das Token in das Feld *„Fine-grained PAT"* einfügen. Die App speichert es nur lokal im Browser (LocalStorage) und sendet es ausschließlich an `api.github.com`.
+**Danach:** In der App unter *Konto & Cloud* das Token in das Feld *„Fine-grained PAT"* einfügen und die Verbindung testen. Die App speichert es nur lokal im Browser (LocalStorage) und sendet es ausschließlich an `api.github.com`.
 
 ### Widerruf
 
-Zwei Wege, beide wirken sofort und lassen die Daten im Repo unberührt:
+Das Entfernen in der App löscht nur die lokale Token-Kopie; um den Token serverseitig ungültig zu machen, widerrufe ihn in GitHub. Beide Wege lassen die Daten im Repo unberührt:
 
-- **In der App:** *Einstellungen → Konto & Cloud → „Abmelden"* löscht das Token aus dem Browser **und** widerruft es serverseitig über `POST /credentials/revoke` (`api.github.com`, CORS-fähig).
-- **In GitHub:** Settings → Developer settings → Personal access tokens → Token anklicken → *Revoke*.
+- **In der App:** *Konto & Cloud → „Token lokal entfernen"* löscht das Token aus diesem Browser.
+- **In GitHub:** Settings → Developer settings → Personal access tokens → Token anklicken → *Revoke* (widerruft es serverseitig).
 
 ### Alternativen
 

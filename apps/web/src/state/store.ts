@@ -3,8 +3,8 @@
  *
  * Der Zustand hält den fachlichen Datenbestand (`AppState`) und den
  * Arbeitsstand der Erfassung. Jede Mutation schreibt sofort in den lokalen
- * Speicher (`data/state.json`) und stellt einen Queue-Eintrag ein – die
- * Cloud-Synchronisierung folgt in M1.
+ * Speicher (`data/state.json`), stellt einen Queue-Eintrag ein und wird bei
+ * vorhandener Verbindung mit GitHub synchronisiert.
  *
  * Die Domäne bleibt frei von UI- und Speicher-Importen: hier wird nur
  * `domain` aufgerufen, nie umgekehrt.
@@ -20,6 +20,7 @@ import {
   type Bewohner,
   type ISODate,
   type Zaehler,
+  type Zahlung,
 } from "../domain/types";
 import { importiereJson, ImportFehler } from "../domain/io/json";
 import { importiereStartablesungen, type CsvImportErgebnis } from "../domain/io/csv";
@@ -30,6 +31,13 @@ import { meldeText } from "../i18n/meldung";
 import { SpeicherFehler, type StorageAdapter } from "../storage/adapter";
 import { IndexedDbAdapter } from "../storage/indexeddb";
 import { MemoryAdapter } from "../storage/memory";
+import {
+  GitHubStorageAdapter,
+  gueltigesRepo,
+  mergeAppStates,
+  synchronisiereZustand,
+  tokenLesen,
+} from "../storage/github";
 import { id } from "./ids";
 
 /** Pfad der Zustandsdatei im Speicher. */
@@ -75,6 +83,8 @@ function fehlerText(fehler: unknown): string | null {
   return null;
 }
 
+export type SyncStatus = "bereit" | "synchronisiere" | "synchronisiert" | "offline" | "fehler";
+
 interface AppStore {
   // --- Daten ------------------------------------------------------------
   state: AppState;
@@ -82,6 +92,8 @@ interface AppStore {
   meldung: Meldung | null;
   speicher: StorageAdapter;
   geladen: boolean;
+  syncStatus: SyncStatus;
+  syncZuletzt: string | null;
 
   // --- Entwurf (S3) -----------------------------------------------------
   entwurf: Entwurf | null;
@@ -89,6 +101,15 @@ interface AppStore {
   // --- Aktionen ---------------------------------------------------------
   laden: (speicher?: StorageAdapter) => Promise<void>;
   speichern: () => Promise<void>;
+  synchronisieren: () => Promise<void>;
+  einstellungenAendern: (daten: Partial<AppState["einstellungen"]>) => void;
+  zahlungAlsBezahlt: (
+    bewohnerId: string,
+    faelligAm: ISODate,
+    betrag: number,
+    abschlagPlanId?: string,
+  ) => void;
+  zahlungStornieren: (zahlungId: string) => void;
 
   // Bewohner (S4)
   bewohnerAnlegen: (daten: Omit<Bewohner, "id" | "updatedAt">) => string;
@@ -148,6 +169,17 @@ export function standardAdapter(): StorageAdapter {
   return idb.verfuegbar ? idb : new MemoryAdapter();
 }
 
+function initialState(): AppState {
+  const state = emptyState();
+  return {
+    ...state,
+    einstellungen: {
+      ...state.einstellungen,
+      datenRepo: import.meta.env.VITE_DATA_REPO ?? state.einstellungen.datenRepo,
+    },
+  };
+}
+
 function entwurfLaden(): Entwurf | null {
   try {
     const roh = globalThis.localStorage?.getItem(ENTWURF_KEY);
@@ -173,24 +205,28 @@ function entwurfSpeichern(entwurf: Entwurf | null): void {
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
-  state: emptyState(),
+  state: initialState(),
   status: "leer",
   meldung: null,
   speicher: standardAdapter(),
   geladen: false,
+  syncStatus: "bereit",
+  syncZuletzt: null,
   entwurf: entwurfLaden(),
 
   laden: async (speicher) => {
     const adapter = speicher ?? get().speicher;
     set({ speicher: adapter });
+    let erfolgreich = false;
     try {
       const roh = await adapter.read(STATE_PFAD);
       if (roh) {
         const state = importiereJson(roh);
         set({ state, status: "geladen", geladen: true });
       } else {
-        set({ state: emptyState(), status: "leer", geladen: true });
+        set({ state: initialState(), status: "leer", geladen: true });
       }
+      erfolgreich = true;
     } catch (fehler) {
       const grund = fehlerText(fehler);
       set({
@@ -204,13 +240,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
         },
       });
     }
+    if (erfolgreich && tokenLesen()) void get().synchronisieren();
   },
 
   speichern: async () => {
     const { state, speicher } = get();
     try {
-      await speicher.write(STATE_PFAD, JSON.stringify({ ...state, updatedAt: jetzt() }, null, 2));
+      const snapshot = { ...state, updatedAt: jetzt() };
+      set({ state: snapshot });
+      const inhalt = JSON.stringify(snapshot, null, 2);
+      await speicher.write(STATE_PFAD, inhalt);
+      if (speicher instanceof IndexedDbAdapter) {
+        await speicher.queueSchreiben(STATE_PFAD, inhalt);
+      }
       set({ status: "gespeichert" });
+      if (tokenLesen()) void get().synchronisieren();
     } catch (fehler) {
       const grund = fehlerText(fehler);
       set({
@@ -223,6 +267,108 @@ export const useAppStore = create<AppStore>((set, get) => ({
         },
       });
     }
+  },
+
+  synchronisieren: async () => {
+    const { speicher } = get();
+    if (!tokenLesen()) {
+      set({ syncStatus: "bereit" });
+      return;
+    }
+    if (get().syncStatus === "synchronisiere") return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      set({ syncStatus: "offline" });
+      return;
+    }
+    if (!gueltigesRepo(get().state.einstellungen.datenRepo ?? "")) {
+      set({
+        syncStatus: "fehler",
+        meldung: { art: "fehler", text: i18n.t("cloud.repoUngueltig") },
+      });
+      return;
+    }
+    set({ syncStatus: "synchronisiere" });
+    try {
+      const queue = speicher instanceof IndexedDbAdapter ? await speicher.queueLesen() : [];
+      const queueIds = queue.map((eintrag) => eintrag.id);
+      const adapter = new GitHubStorageAdapter(
+        tokenLesen(),
+        get().state.einstellungen.datenRepo ?? "",
+      );
+      const synchronerStand = await synchronisiereZustand(adapter, get().state);
+      const aktuellerStand = get().state;
+      const zusammengefuehrt = mergeAppStates(aktuellerStand, synchronerStand);
+      set({ state: zusammengefuehrt, syncStatus: "synchronisiert", syncZuletzt: jetzt() });
+      await speicher.write(STATE_PFAD, JSON.stringify(zusammengefuehrt, null, 2));
+      if (speicher instanceof IndexedDbAdapter) {
+        for (const queueId of queueIds) await speicher.queueEntfernen(queueId);
+      }
+      if (JSON.stringify(aktuellerStand) !== JSON.stringify(zusammengefuehrt)) {
+        await get().speichern();
+      }
+    } catch (fehler) {
+      const reason =
+        fehler instanceof Error
+          ? fehler.message
+          : i18n.t("cloud.unbekannterFehler");
+      set({
+        syncStatus: "fehler",
+        meldung: { art: "fehler", text: i18n.t("cloud.syncFehler", { reason }) },
+      });
+    }
+  },
+
+  einstellungenAendern: (daten) => {
+    set((s) => ({
+      state: {
+        ...s.state,
+        einstellungen: { ...s.state.einstellungen, ...daten },
+      },
+    }));
+    void get().speichern();
+  },
+
+  zahlungAlsBezahlt: (bewohnerId, faelligAm, betrag, abschlagPlanId) => {
+    const datum = today();
+    const vorhanden = get().state.zahlung.find(
+      (zahlung) =>
+        !zahlung.deleted &&
+        zahlung.bewohnerId === bewohnerId &&
+        zahlung.faelligAm === faelligAm &&
+        (zahlung.abschlagPlanId === abschlagPlanId || !zahlung.abschlagPlanId),
+    );
+    const eintrag: Zahlung = vorhanden
+      ? { ...vorhanden, abschlagPlanId, betrag, bezahltAm: datum, updatedAt: jetzt() }
+      : {
+          id: id("za"),
+          bewohnerId,
+          abschlagPlanId,
+          betrag,
+          faelligAm,
+          bezahltAm: datum,
+          updatedAt: jetzt(),
+        };
+    set((s) => ({
+      state: {
+        ...s.state,
+        zahlung: vorhanden
+          ? s.state.zahlung.map((zahlung) => (zahlung.id === vorhanden.id ? eintrag : zahlung))
+          : [...s.state.zahlung, eintrag],
+      },
+    }));
+    void get().speichern();
+  },
+
+  zahlungStornieren: (zahlungId) => {
+    set((s) => ({
+      state: {
+        ...s.state,
+        zahlung: s.state.zahlung.map((zahlung) =>
+          zahlung.id === zahlungId ? { ...zahlung, deleted: true, updatedAt: jetzt() } : zahlung,
+        ),
+      },
+    }));
+    void get().speichern();
   },
 
   bewohnerAnlegen: (daten) => {
@@ -363,7 +509,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         state: {
           ...s.state,
           abschlagPlan: s.state.abschlagPlan.map((a) =>
-            a.id === vorhanden.id ? { ...a, betrag, aktiv: true } : a,
+            a.id === vorhanden.id ? { ...a, betrag, aktiv: true, updatedAt: jetzt() } : a,
           ),
         },
       }));
@@ -374,6 +520,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         betrag,
         rhythmus,
         aktiv: true,
+        updatedAt: jetzt(),
       };
       set((s) => ({ state: { ...s.state, abschlagPlan: [...s.state.abschlagPlan, plan] } }));
     }
@@ -385,7 +532,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       state: {
         ...s.state,
         abschlagPlan: s.state.abschlagPlan.map((a) =>
-          a.id === planId ? { ...a, aktiv: false } : a,
+          a.id === planId ? { ...a, aktiv: false, updatedAt: jetzt() } : a,
         ),
       },
     }));

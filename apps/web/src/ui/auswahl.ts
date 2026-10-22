@@ -32,7 +32,7 @@ export function sichtbareBewohner(bewohner: Bewohner[]): Bewohner[] {
  * jüngste, wenn es keine bezahlte gibt.
  */
 export function letzteZahlungVon(zahlungen: Zahlung[], bewohnerId: string): Zahlung | null {
-  const eigene = zahlungen.filter((z) => z.bewohnerId === bewohnerId);
+  const eigene = zahlungen.filter((z) => z.bewohnerId === bewohnerId && !z.deleted);
   if (eigene.length === 0) return null;
 
   const sortiert = [...eigene].sort((a, b) => {

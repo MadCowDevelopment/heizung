@@ -15,11 +15,18 @@ import { Meldungszeile } from "./components/Primitives";
 import { ScreenZaehler } from "./screens/ScreenZaehler";
 import { ScreenAblesung } from "./screens/ScreenAblesung";
 import { ScreenBewohner } from "./screens/ScreenBewohner";
+import { ScreenVerbrauch } from "./screens/ScreenVerbrauch";
+import { ScreenAbschlaege } from "./screens/ScreenAbschlaege";
+import { ScreenKonto } from "./screens/ScreenKonto";
+import { tokenLesen } from "../storage/github";
 
 const NAVIGATION = [
   { pfad: "/zaehler", schluessel: "nav.zaehler" },
   { pfad: "/ablesung", schluessel: "nav.ablesung" },
   { pfad: "/bewohner", schluessel: "nav.bewohner" },
+  { pfad: "/verbrauch", schluessel: "nav.verbrauch" },
+  { pfad: "/abschlaege", schluessel: "nav.abschlaege" },
+  { pfad: "/konto", schluessel: "nav.konto" },
 ] as const;
 
 export function App() {
@@ -29,10 +36,27 @@ export function App() {
   const meldung = useAppStore((s) => s.meldung);
   const status = useAppStore((s) => s.status);
   const meldungSetzen = useAppStore((s) => s.meldungSetzen);
+  const synchronisieren = useAppStore((s) => s.synchronisieren);
+  const syncIntervall = useAppStore((s) => s.state.einstellungen.syncIntervallSekunden ?? 30);
+  const syncStatus = useAppStore((s) => s.syncStatus);
 
   useEffect(() => {
     void laden();
   }, [laden]);
+
+  useEffect(() => {
+    const online = () => void synchronisieren();
+    globalThis.addEventListener?.("online", online);
+    return () => globalThis.removeEventListener?.("online", online);
+  }, [synchronisieren]);
+
+  useEffect(() => {
+    if (!geladen) return;
+    const timer = globalThis.setInterval(() => {
+      if (tokenLesen()) void synchronisieren();
+    }, Math.max(15, syncIntervall) * 1000);
+    return () => globalThis.clearInterval(timer);
+  }, [geladen, syncIntervall, synchronisieren]);
 
   return (
     <div className="min-h-dvh" style={{ backgroundColor: "#faf8f4" }}>
@@ -56,19 +80,21 @@ export function App() {
             </h1>
             <p className="truncate text-[0.75rem]" style={{ color: "#6b6862" }}>
               {statusText(status, t)}
+              {syncStatus !== "bereit" ? ` · ${t(`cloud.syncStatus.${syncStatus}`)}` : ""}
             </p>
           </div>
         </div>
 
         <nav
-          className="mx-auto flex max-w-4xl gap-1 px-2"
+          className="mx-auto flex max-w-4xl gap-1 overflow-x-auto overflow-y-hidden px-2"
           style={{ borderTop: "1px solid #e3ded4" }}
+          aria-label={t("nav.hauptnavigation")}
         >
           {NAVIGATION.map((eintrag) => (
             <NavLink
               key={eintrag.pfad}
               to={eintrag.pfad}
-              className="relative flex min-h-11 items-center px-3 py-2.5 text-[0.875rem] font-medium"
+              className="relative flex min-h-11 shrink-0 items-center whitespace-nowrap px-3 py-2.5 text-[0.875rem] font-medium"
               style={({ isActive }) => ({
                 color: isActive ? "#1b1a17" : "#6b6862",
                 borderBottom: isActive ? "2px solid #1b1a17" : "2px solid transparent",
@@ -100,6 +126,9 @@ export function App() {
             <Route path="/zaehler" element={<ScreenZaehler />} />
             <Route path="/ablesung" element={<ScreenAblesung />} />
             <Route path="/bewohner" element={<ScreenBewohner />} />
+            <Route path="/verbrauch" element={<ScreenVerbrauch />} />
+            <Route path="/abschlaege" element={<ScreenAbschlaege />} />
+            <Route path="/konto" element={<ScreenKonto />} />
             <Route path="*" element={<ScreenZaehler />} />
           </Routes>
         )}
